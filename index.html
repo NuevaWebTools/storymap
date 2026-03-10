@@ -55,6 +55,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 .hero-card input, .hero-card textarea { width: 100%; background: var(--ed-bg); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
 .hero-card textarea { resize: vertical; min-height: 40px; }
 .hero-card input::placeholder, .hero-card textarea::placeholder { color: var(--ed-placeholder); }
+.hero-color-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.hero-color-row label { font-size: 12px; color: var(--ed-muted); }
+.hero-color-row input[type=color] { width: 36px; height: 28px; padding: 2px; border: 1px solid var(--ed-border); border-radius: 4px; cursor: pointer; background: var(--ed-bg); }
+.hero-color-row .hero-color-reset { font-size: 11px; color: var(--ed-muted); cursor: pointer; text-decoration: underline; }
+.hero-color-row .hero-color-reset:hover { color: var(--ed-accent); }
 
 /* Section cards */
 .section-card { background: var(--ed-card); border: 1px solid var(--ed-border); border-radius: 6px; padding: 12px; margin-bottom: 8px; transition: border-color .2s, opacity .2s, filter .2s; opacity: 0.45; filter: grayscale(30%); }
@@ -70,7 +75,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 .img-drop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 5; }
 .img-drop.has-image input[type=file] { pointer-events: none; }
 .img-drop .thumb { max-width: 100%; max-height: 120px; border-radius: 4px; margin-bottom: 6px; display: block; }
-.img-drop .remove-img { position: absolute; top: 4px; right: 4px; background: var(--ed-danger); color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 13px; cursor: pointer; line-height: 24px; text-align: center; z-index: 10; }
+.img-drop .remove-img { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.75); color: #fff; border: 1px solid rgba(255,255,255,.4); border-radius: 4px; width: 28px; height: 28px; padding: 0; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: background .2s; }
+.img-drop .remove-img:hover { background: var(--ed-danger); border-color: var(--ed-danger); }
+.img-drop .remove-img svg { width: 14px; height: 14px; fill: currentColor; }
 .section-loc { font-size: 11px; color: var(--ed-muted); margin-top: 4px; }
 .section-loc.set { color: var(--ed-success); }
 .section-card-actions { display: flex; gap: 6px; }
@@ -210,10 +217,61 @@ let sections = [];
 let storyTitle = 'My Story';
 let heroSubtitle = 'Scroll down to explore';
 let heroImage = '';
+let heroTextColor = '';
 let mapZoom = 12;
 let activeIdx = -1;
 let currentView = 'landing';
 let currentStorymapId = null;
+
+// ── IndexedDB Storage (replaces localStorage for much larger capacity) ──
+const DB_NAME = 'storymap-db';
+const DB_VERSION = 1;
+let _db = null;
+
+function openDB() {
+  if (_db) return Promise.resolve(_db);
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => { _db = req.result; resolve(_db); };
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('index')) db.createObjectStore('index');
+      if (!db.objectStoreNames.contains('storymaps')) db.createObjectStore('storymaps', { keyPath: 'id' });
+    };
+  });
+}
+
+async function dbGet(storeName, key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbPut(storeName, value, key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    const req = key !== undefined ? store.put(value, key) : store.put(value);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbDelete(storeName, key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const req = tx.objectStore(storeName).delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
 
 const PALETTES = {
   cabin: {
@@ -265,104 +323,142 @@ function generateThumbnail(dataUrl, callback) {
   img.src = dataUrl;
 }
 
-// ── Index Management ──
-function loadIndex() {
-  return JSON.parse(localStorage.getItem('storymap-index') || '[]');
+// ── Index Management (async IndexedDB) ──
+async function loadIndex() {
+  const arr = await dbGet('index', 'index');
+  return Array.isArray(arr) ? arr : [];
 }
 
-function saveIndex(index) {
-  localStorage.setItem('storymap-index', JSON.stringify(index));
+async function saveIndex(index) {
+  await dbPut('index', index, 'index');
 }
 
-function updateIndexEntry(id, updates) {
-  const index = loadIndex();
+async function updateIndexEntry(id, updates) {
+  const index = await loadIndex();
   const entry = index.find(e => e.id === id);
   if (entry) {
     Object.assign(entry, updates, { lastEdited: Date.now() });
-    saveIndex(index);
+    await saveIndex(index);
   }
 }
 
-function removeFromIndex(id) {
-  saveIndex(loadIndex().filter(e => e.id !== id));
+async function removeFromIndex(id) {
+  const index = await loadIndex();
+  await saveIndex(index.filter(e => e.id !== id));
 }
 
 // ── Per-Storymap Load / Save ──
-function loadStorymap(id) {
-  const p = 'storymap:' + id + ':';
-  sections = JSON.parse(localStorage.getItem(p + 'sections') || '[]');
-  storyTitle = localStorage.getItem(p + 'title') || 'Untitled';
-  heroSubtitle = localStorage.getItem(p + 'hero-subtitle') || 'Scroll down to explore';
-  heroImage = localStorage.getItem(p + 'hero-image') || '';
-  mapZoom = parseInt(localStorage.getItem(p + 'zoom') || '12');
-  paletteId = localStorage.getItem(p + 'palette') || 'cabin';
+async function loadStorymap(id) {
+  const doc = await dbGet('storymaps', id);
+  if (doc) {
+    sections = doc.sections || [];
+    storyTitle = doc.title || 'Untitled';
+    heroSubtitle = doc.heroSubtitle || 'Scroll down to explore';
+    heroImage = doc.heroImage || '';
+    heroTextColor = doc.heroTextColor || '';
+    mapZoom = parseInt(doc.zoom || '12');
+    paletteId = doc.palette || 'cabin';
+  } else {
+    sections = [];
+    storyTitle = 'Untitled';
+    heroSubtitle = 'Scroll down to explore';
+    heroImage = '';
+    heroTextColor = '';
+    mapZoom = 12;
+    paletteId = 'cabin';
+  }
   if (!PALETTES[paletteId]) paletteId = 'cabin';
   currentStorymapId = id;
 }
 
-function deleteStorymapData(id) {
-  const p = 'storymap:' + id + ':';
-  ['sections', 'title', 'hero-subtitle', 'hero-image', 'zoom', 'palette'].forEach(k => localStorage.removeItem(p + k));
-  removeFromIndex(id);
+async function deleteStorymapData(id) {
+  await dbDelete('storymaps', id);
+  await removeFromIndex(id);
 }
 
-function save() {
+async function save() {
   if (!currentStorymapId) return;
-  const p = 'storymap:' + currentStorymapId + ':';
   try {
-    localStorage.setItem(p + 'sections', JSON.stringify(sections));
-    localStorage.setItem(p + 'title', storyTitle);
-    localStorage.setItem(p + 'hero-subtitle', heroSubtitle);
-    localStorage.setItem(p + 'hero-image', heroImage);
-    localStorage.setItem(p + 'zoom', String(mapZoom));
-    localStorage.setItem(p + 'palette', paletteId);
+    await dbPut('storymaps', {
+      id: currentStorymapId,
+      sections,
+      title: storyTitle,
+      heroSubtitle,
+      heroImage,
+      heroTextColor,
+      zoom: mapZoom,
+      palette: paletteId
+    });
+    await updateIndexEntry(currentStorymapId, { title: storyTitle });
   } catch (e) {
-    console.warn('localStorage save failed (quota exceeded):', e);
-    alert('Storage full! Try using smaller images or fewer sections.');
-    return;
+    console.warn('IndexedDB save failed:', e);
+    alert('Storage error. Try deleting old storymaps or clearing site data.');
   }
-  updateIndexEntry(currentStorymapId, { title: storyTitle });
 }
 
-// ── Migration ──
-function migrateIfNeeded() {
-  if (localStorage.getItem('storymap-index')) return;
-  const oldSections = localStorage.getItem('storymap-sections');
-  if (!oldSections) { saveIndex([]); return; }
-
-  const id = generateId();
-  const title = localStorage.getItem('storymap-title') || 'My Story';
-  const sub = localStorage.getItem('storymap-hero-subtitle') || '';
-  const img = localStorage.getItem('storymap-hero-image') || '';
-  const zoom = localStorage.getItem('storymap-zoom') || '12';
-  const pal = localStorage.getItem('storymap-palette') || 'cabin';
-
-  const p = 'storymap:' + id + ':';
-  localStorage.setItem(p + 'sections', oldSections);
-  localStorage.setItem(p + 'title', title);
-  localStorage.setItem(p + 'hero-subtitle', sub);
-  localStorage.setItem(p + 'hero-image', img);
-  localStorage.setItem(p + 'zoom', zoom);
-  localStorage.setItem(p + 'palette', pal);
-
-  const entry = { id: id, title: title, heroImageThumb: '', lastEdited: Date.now(), createdAt: Date.now() };
-  saveIndex([entry]);
-
-  if (img) {
-    generateThumbnail(img, (thumb) => {
-      const idx = loadIndex();
-      const e = idx.find(x => x.id === id);
-      if (e) { e.heroImageThumb = thumb; saveIndex(idx); }
-      if (currentView === 'landing') renderLanding();
+// ── Migration: localStorage → IndexedDB ──
+async function migrateIfNeeded() {
+  await openDB();
+  const lsIndex = localStorage.getItem('storymap-index');
+  if (lsIndex) {
+    let index;
+    try { index = JSON.parse(lsIndex); } catch (_) { return; }
+    if (!Array.isArray(index)) return;
+    for (const entry of index) {
+      const p = 'storymap:' + entry.id + ':';
+      const doc = {
+        id: entry.id,
+        sections: JSON.parse(localStorage.getItem(p + 'sections') || '[]'),
+        title: localStorage.getItem(p + 'title') || 'Untitled',
+        heroSubtitle: localStorage.getItem(p + 'hero-subtitle') || 'Scroll down to explore',
+        heroImage: localStorage.getItem(p + 'hero-image') || '',
+        heroTextColor: localStorage.getItem(p + 'hero-text-color') || '',
+        zoom: parseInt(localStorage.getItem(p + 'zoom') || '12'),
+        palette: localStorage.getItem(p + 'palette') || 'cabin'
+      };
+      await dbPut('storymaps', doc);
+    }
+    await saveIndex(index);
+    index.forEach(e => {
+      const p = 'storymap:' + e.id + ':';
+      ['sections', 'title', 'hero-subtitle', 'hero-image', 'hero-text-color', 'zoom', 'palette'].forEach(k => localStorage.removeItem(p + k));
     });
+    localStorage.removeItem('storymap-index');
   }
-
-  ['storymap-sections', 'storymap-title', 'storymap-hero-subtitle', 'storymap-hero-image', 'storymap-zoom', 'storymap-palette'].forEach(k => localStorage.removeItem(k));
+  const oldSections = localStorage.getItem('storymap-sections');
+  if (oldSections) {
+    const id = generateId();
+    const doc = {
+      id,
+      sections: JSON.parse(oldSections),
+      title: localStorage.getItem('storymap-title') || 'My Story',
+      heroSubtitle: localStorage.getItem('storymap-hero-subtitle') || 'Scroll down to explore',
+      heroImage: localStorage.getItem('storymap-hero-image') || '',
+      heroTextColor: localStorage.getItem('storymap-hero-text-color') || '',
+      zoom: parseInt(localStorage.getItem('storymap-zoom') || '12'),
+      palette: localStorage.getItem('storymap-palette') || 'cabin'
+    };
+    await dbPut('storymaps', doc);
+    const img = doc.heroImage;
+    const entry = { id, title: doc.title, heroImageThumb: '', lastEdited: Date.now(), createdAt: Date.now() };
+    const index = await loadIndex();
+    index.push(entry);
+    await saveIndex(index);
+    if (img) {
+      generateThumbnail(img, async (thumb) => {
+        const idx = await loadIndex();
+        const e = idx.find(x => x.id === id);
+        if (e) { e.heroImageThumb = thumb; await saveIndex(idx); }
+        if (currentView === 'landing') await renderLanding();
+      });
+    }
+    ['storymap-sections', 'storymap-title', 'storymap-hero-subtitle', 'storymap-hero-image', 'storymap-hero-text-color', 'storymap-zoom', 'storymap-palette'].forEach(k => localStorage.removeItem(k));
+  }
 }
 
 // ── Landing Page ──
-function renderLanding() {
-  const index = loadIndex();
+async function renderLanding() {
+  const index = await loadIndex();
   const grid = document.getElementById('storymap-grid');
   grid.innerHTML = '';
 
@@ -398,9 +494,9 @@ function renderLanding() {
     btn.addEventListener('click', (e) => { e.stopPropagation(); openStorymap(btn.dataset.id); });
   });
   grid.querySelectorAll('.btn-delete-map').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (confirm('Delete this storymap? This cannot be undone.')) { deleteStorymapData(btn.dataset.id); renderLanding(); }
+      if (confirm('Delete this storymap? This cannot be undone.')) { await deleteStorymapData(btn.dataset.id); renderLanding(); }
     });
   });
   grid.querySelectorAll('.storymap-card:not(.create-new)').forEach(card => {
@@ -413,7 +509,7 @@ function renderLanding() {
 }
 
 // ── Navigation ──
-function showLanding() {
+async function showLanding() {
   currentView = 'landing';
   currentStorymapId = null;
   document.body.style.overflow = 'auto';
@@ -424,11 +520,11 @@ function showLanding() {
   document.getElementById('preview-mode').style.display = 'none';
   if (editMap) { editMap.remove(); editMap = null; }
   if (previewMap) { previewMap.remove(); previewMap = null; }
-  renderLanding();
+  await renderLanding();
 }
 
-function openStorymap(id) {
-  loadStorymap(id);
+async function openStorymap(id) {
+  await loadStorymap(id);
   currentView = 'edit';
   mode = 'edit';
   activeIdx = -1;
@@ -446,7 +542,7 @@ function openStorymap(id) {
   applyPaletteToPreview();
   if (sections.length === 0) {
     sections.push({ title: 'Welcome', body: 'Click the map to set this section\'s location, then add more sections to build your story.', image: '', lat: null, lng: null, zoom: 10 });
-    save();
+    await save();
   }
   renderSections();
   renderEditMarkers();
@@ -470,25 +566,28 @@ function initEditMap() {
   });
 }
 
-function createNewStorymap() {
+async function createNewStorymap() {
   const id = generateId();
-  const index = loadIndex();
-  index.push({ id: id, title: 'Untitled Story', heroImageThumb: '', lastEdited: Date.now(), createdAt: Date.now() });
-  saveIndex(index);
-  const p = 'storymap:' + id + ':';
-  localStorage.setItem(p + 'sections', JSON.stringify([{ title: 'Welcome', body: 'Click the map to set this section\'s location, then add more sections to build your story.', image: '', lat: null, lng: null, zoom: 10 }]));
-  localStorage.setItem(p + 'title', 'Untitled Story');
-  localStorage.setItem(p + 'hero-subtitle', 'Scroll down to explore');
-  localStorage.setItem(p + 'hero-image', '');
-  localStorage.setItem(p + 'zoom', '12');
-  localStorage.setItem(p + 'palette', 'cabin');
-  openStorymap(id);
+  const index = await loadIndex();
+  index.push({ id, title: 'Untitled Story', heroImageThumb: '', lastEdited: Date.now(), createdAt: Date.now() });
+  await saveIndex(index);
+  await dbPut('storymaps', {
+    id,
+    sections: [{ title: 'Welcome', body: 'Click the map to set this section\'s location, then add more sections to build your story.', image: '', lat: null, lng: null, zoom: 10 }],
+    title: 'Untitled Story',
+    heroSubtitle: 'Scroll down to explore',
+    heroImage: '',
+    heroTextColor: '',
+    zoom: 12,
+    palette: 'cabin'
+  });
+  await openStorymap(id);
 }
 
-function returnToLanding() {
-  if (currentStorymapId) save();
+async function returnToLanding() {
+  if (currentStorymapId) await save();
   if (previewMap) { previewMap.remove(); previewMap = null; }
-  showLanding();
+  await showLanding();
 }
 
 // ── Palette ──
@@ -538,6 +637,7 @@ function applyPaletteToPreview() {
 }
 
 // Resize image to fit within max dimensions and return compressed data URL
+// IndexedDB allows larger storage, so we use 1200px and 0.7 quality for better image quality
 function resizeImage(dataUrl, maxSize, callback) {
   const img = new Image();
   img.onload = () => {
@@ -566,13 +666,18 @@ function renderSections() {
     <div class="hero-label">Hero / Intro Section</div>
     <input type="text" id="hero-title-input" placeholder="Story title" value="${esc(storyTitle)}">
     <textarea id="hero-subtitle-input" placeholder="Subtitle or intro text">${esc(heroSubtitle)}</textarea>
+    <div class="hero-color-row">
+      <label for="hero-text-color">Text color:</label>
+      <input type="color" id="hero-text-color" value="${heroTextColor || '#ffffff'}" title="Hero text color">
+      <span class="hero-color-reset" id="hero-color-reset">Use palette default</span>
+    </div>
     <div class="img-drop${heroImage ? ' has-image' : ''}" id="hero-img-drop">
-      ${heroImage ? `<img class="thumb" src="${heroImage}"><button class="remove-img" id="hero-img-remove">&#128465;</button>` : 'Drop hero background image or click to upload'}
+      ${heroImage ? `<img class="thumb" src="${heroImage}"><button class="remove-img" id="hero-img-remove" title="Remove image"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>` : 'Drop hero background image or click to upload'}
       <input type="file" accept="image/*" id="hero-img-file">
     </div>
   `;
   hero.addEventListener('click', (e) => {
-    if (e.target.closest('button') || e.target.closest('.img-drop') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.target.closest('button') || e.target.closest('.img-drop') || e.target.closest('.hero-color-row') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     activeIdx = -1;
     renderSections();
   });
@@ -584,6 +689,18 @@ function renderSections() {
   });
   document.getElementById('hero-subtitle-input').addEventListener('input', (e) => {
     heroSubtitle = e.target.value;
+    save();
+  });
+  const heroColorInput = document.getElementById('hero-text-color');
+  heroColorInput.value = heroTextColor || '#ffffff';
+  heroColorInput.addEventListener('input', (e) => {
+    heroTextColor = e.target.value;
+    save();
+  });
+  document.getElementById('hero-color-reset').addEventListener('click', (e) => {
+    e.stopPropagation();
+    heroTextColor = '';
+    heroColorInput.value = '#ffffff';
     save();
   });
   const heroDrop = document.getElementById('hero-img-drop');
@@ -619,7 +736,7 @@ function renderSections() {
       <input type="text" placeholder="Section title" value="${esc(s.title)}" data-field="title" data-i="${i}">
       <textarea placeholder="Section content…" data-field="body" data-i="${i}">${esc(s.body)}</textarea>
       <div class="img-drop" data-i="${i}">
-        ${s.image ? `<img class="thumb" src="${s.image}"><button class="remove-img" data-i="${i}">&#128465;</button>` : 'Drop image here or click to upload'}
+        ${s.image ? `<img class="thumb" src="${s.image}"><button class="remove-img" data-i="${i}" title="Remove image"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>` : 'Drop image here or click to upload'}
         <input type="file" accept="image/*" data-i="${i}">
       </div>
       <div class="section-loc ${hasLoc ? 'set' : ''}">
@@ -646,6 +763,7 @@ function renderSections() {
   });
   list.querySelectorAll('.del-btn').forEach(el => {
     el.addEventListener('click', () => {
+      if (!confirm('Delete this section?')) return;
       const idx = parseInt(el.dataset.i);
       sections.splice(idx, 1);
       if (activeIdx >= sections.length) activeIdx = Math.max(0, sections.length - 1);
@@ -668,8 +786,8 @@ function renderSections() {
       save(); renderSections(); renderEditMarkers();
     });
   });
-  // Image drop zones
-  list.querySelectorAll('.img-drop').forEach(drop => {
+  // Image drop zones (section cards only; hero has its own handlers)
+  list.querySelectorAll('.img-drop[data-i]').forEach(drop => {
     const idx = parseInt(drop.dataset.i);
     drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
     drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
@@ -684,7 +802,7 @@ function renderSections() {
       if (file) handleImageFile(file, idx);
     });
   });
-  list.querySelectorAll('.remove-img').forEach(el => {
+  list.querySelectorAll('.remove-img[data-i]').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       const idx = parseInt(el.dataset.i);
@@ -750,7 +868,9 @@ function enterPreview() {
   const heroEl = document.getElementById('hero-fullpage');
   heroEl.className = '';
   heroEl.style.backgroundImage = '';
-  heroEl.innerHTML = `<h1>${esc(storyTitle)}</h1><p>${esc(heroSubtitle)}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div>`;
+  const heroTitleStyle = heroTextColor ? ` style="color:${esc(heroTextColor)}"` : '';
+  const heroSubtitleStyle = heroTextColor ? ` style="color:${esc(heroTextColor)}"` : '';
+  heroEl.innerHTML = `<h1${heroTitleStyle}>${esc(storyTitle)}</h1><p${heroSubtitleStyle}>${esc(heroSubtitle)}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div>`;
   if (heroImage) {
     heroEl.classList.add('has-bg');
     heroEl.style.backgroundImage = `url(${heroImage})`;
@@ -804,7 +924,7 @@ function enterPreview() {
     // Sync zoom from map controls back to mapZoom
     previewMap.on('zoomend', () => {
       mapZoom = previewMap.getZoom();
-      if (currentStorymapId) localStorage.setItem('storymap:' + currentStorymapId + ':zoom', String(mapZoom));
+      if (currentStorymapId) save();
     });
 
     const first = sections.find(s => s.lat != null);
@@ -914,7 +1034,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </head>
 <body>
 <div id="scroll-container">
-<div id="hero"><h1>${esc(storyTitle).replace(/'/g, "\\'")}</h1><p>${esc(heroSubtitle).replace(/'/g, "\\'")}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div></div>
+<div id="hero"><h1${heroTextColor ? ` style="color:${heroTextColor.replace(/'/g, "\\'")}"` : ''}>${esc(storyTitle).replace(/'/g, "\\'")}</h1><p${heroTextColor ? ` style="color:${heroTextColor.replace(/'/g, "\\'")}"` : ''}>${esc(heroSubtitle).replace(/'/g, "\\'")}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div></div>
 <div id="story-body"><div id="left"><div id="map"></div><div id="narrative"></div></div><div id="right"></div></div>
 </div>
 <script>
@@ -974,8 +1094,15 @@ updateActiveSection();
 document.getElementById('btn-back').addEventListener('click', returnToLanding);
 
 // ── Init ──
-migrateIfNeeded();
-showLanding();
+(async function init() {
+  try {
+    await migrateIfNeeded();
+    await showLanding();
+  } catch (e) {
+    console.error('StoryMap init failed:', e);
+    document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;text-align:center"><h2>Unable to load StoryMap</h2><p>Storage may be unavailable (e.g. private browsing). Try a normal browser window.</p></div>';
+  }
+})();
 </script>
 </body>
 </html>
