@@ -8,78 +8,85 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; background: #1a1a2e; color: #e0e0e0; }
+:root {
+  --ed-bg: #FAF5EF; --ed-panel: #F2E8DD; --ed-card: #FFF9F3; --ed-border: #D6C4B0;
+  --ed-accent: #A65E2E; --ed-accent-hover: #8B4F26; --ed-secondary: #C49A6C; --ed-secondary-hover: #B08858;
+  --ed-text: #2A1F18; --ed-muted: #7A6555; --ed-placeholder: #B0A090;
+  --ed-danger: #C0503A; --ed-danger-hover: #A3422F; --ed-success: #5B8A5E;
+  --ed-hint-bg: rgba(42,31,24,.8);
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; background: var(--ed-bg); color: var(--ed-text); }
 
 /* ── Toolbar ── */
-#toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: #16213e; border-bottom: 1px solid #0f3460; min-height: 48px; z-index: 1000; flex-wrap: wrap; }
+#toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--ed-panel); border-bottom: 1px solid var(--ed-border); min-height: 48px; z-index: 1000; flex-wrap: wrap; }
 #toolbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
-#toolbar h1 { font-size: 16px; font-weight: 600; color: #e94560; margin-right: 8px; }
+#toolbar h1 { font-size: 16px; font-weight: 600; color: var(--ed-accent); margin-right: 8px; }
 #palette-bar { display: flex; align-items: center; gap: 6px; margin-right: 8px; }
-#palette-bar .palette-label { font-size: 12px; color: #888; margin-right: 4px; }
+#palette-bar .palette-label { font-size: 12px; color: var(--ed-muted); margin-right: 4px; }
 #palette-buttons { display: flex; gap: 4px; }
-.palette-btn { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid #533483; border-radius: 6px; background: #0f3460; color: #ccc; font-size: 12px; cursor: pointer; transition: border-color .2s, background .2s; }
-.palette-btn:hover { border-color: #e94560; background: #1a1a2e; }
-.palette-btn.active { border-color: #e94560; background: rgba(233,69,96,.2); color: #fff; }
+.palette-btn { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--ed-border); border-radius: 6px; background: var(--ed-card); color: var(--ed-muted); font-size: 12px; cursor: pointer; transition: border-color .2s, background .2s; }
+.palette-btn:hover { border-color: var(--ed-accent); background: var(--ed-bg); }
+.palette-btn.active { border-color: var(--ed-accent); background: var(--ed-panel); color: var(--ed-text); font-weight: 600; }
 .palette-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
-#toolbar input[type=text] { background: #0f3460; border: 1px solid #533483; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 14px; width: 220px; }
+#toolbar input[type=text] { background: var(--ed-card); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 4px 10px; border-radius: 4px; font-size: 14px; width: 220px; }
 .btn { padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background .2s; }
-.btn-primary { background: #e94560; color: #fff; }
-.btn-primary:hover { background: #c73a52; }
-.btn-secondary { background: #533483; color: #fff; }
-.btn-secondary:hover { background: #6b44a0; }
-.btn-ghost { background: transparent; color: #aaa; border: 1px solid #333; }
-.btn-ghost:hover { background: #333; color: #fff; }
-.btn-danger { background: #ff4757; color: #fff; }
-.btn-danger:hover { background: #e03e4e; }
+.btn-primary { background: var(--ed-accent); color: var(--ed-card); }
+.btn-primary:hover { background: var(--ed-accent-hover); }
+.btn-secondary { background: var(--ed-secondary); color: var(--ed-text); }
+.btn-secondary:hover { background: var(--ed-secondary-hover); }
+.btn-ghost { background: transparent; color: var(--ed-muted); border: 1px solid var(--ed-border); }
+.btn-ghost:hover { background: var(--ed-panel); color: var(--ed-text); }
+.btn-danger { background: var(--ed-danger); color: var(--ed-card); }
+.btn-danger:hover { background: var(--ed-danger-hover); }
 
 /* ── Edit Mode ── */
 #edit-mode { display: flex; height: calc(100vh - 48px); }
-#section-panel { width: 55%; min-width: 400px; overflow-y: auto; background: #16213e; border-right: 1px solid #0f3460; display: flex; flex-direction: column; }
+#section-panel { width: 55%; min-width: 400px; overflow-y: auto; background: var(--ed-panel); border-right: 1px solid var(--ed-border); display: flex; flex-direction: column; }
 #section-list { flex: 1; overflow-y: auto; padding: 8px; }
-#add-section-bar { padding: 10px; border-top: 1px solid #0f3460; }
+#add-section-bar { padding: 10px; border-top: 1px solid var(--ed-border); }
 #map-edit-container { flex: 1; position: relative; }
 #map-edit { height: 100%; width: 100%; }
-.map-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.75); color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 12px; z-index: 800; pointer-events: none; }
+.map-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--ed-hint-bg); color: var(--ed-card); padding: 6px 14px; border-radius: 20px; font-size: 12px; z-index: 800; pointer-events: none; }
 
 /* Hero card */
-.hero-card { background: #0f3460; border: 1px solid #e94560; border-radius: 6px; padding: 12px; margin-bottom: 12px; transition: opacity .2s, filter .2s; opacity: 0.45; filter: grayscale(30%); cursor: pointer; }
+.hero-card { background: var(--ed-card); border: 1px solid var(--ed-accent); border-radius: 6px; padding: 12px; margin-bottom: 12px; transition: opacity .2s, filter .2s; opacity: 0.45; filter: grayscale(30%); cursor: pointer; }
 .hero-card.active { opacity: 1; filter: none; }
-.hero-card .hero-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #e94560; margin-bottom: 8px; font-weight: 700; }
-.hero-card input, .hero-card textarea { width: 100%; background: #1a1a2e; border: 1px solid #533483; color: #e0e0e0; padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
+.hero-card .hero-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--ed-accent); margin-bottom: 8px; font-weight: 700; }
+.hero-card input, .hero-card textarea { width: 100%; background: var(--ed-bg); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
 .hero-card textarea { resize: vertical; min-height: 40px; }
-.hero-card input::placeholder, .hero-card textarea::placeholder { color: #666; }
+.hero-card input::placeholder, .hero-card textarea::placeholder { color: var(--ed-placeholder); }
 
 /* Section cards */
-.section-card { background: #0f3460; border: 1px solid #533483; border-radius: 6px; padding: 12px; margin-bottom: 8px; transition: border-color .2s, opacity .2s, filter .2s; opacity: 0.45; filter: grayscale(30%); }
-.section-card.active { border-color: #e94560; opacity: 1; filter: none; }
+.section-card { background: var(--ed-card); border: 1px solid var(--ed-border); border-radius: 6px; padding: 12px; margin-bottom: 8px; transition: border-color .2s, opacity .2s, filter .2s; opacity: 0.45; filter: grayscale(30%); }
+.section-card.active { border-color: var(--ed-accent); opacity: 1; filter: none; }
 .section-card.dragging { opacity: 0.4; }
 .section-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.section-card-header .num { background: #e94560; color: #fff; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
-.section-card input, .section-card textarea { width: 100%; background: #1a1a2e; border: 1px solid #533483; color: #e0e0e0; padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
+.section-card-header .num { background: var(--ed-accent); color: var(--ed-card); width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.section-card input, .section-card textarea { width: 100%; background: var(--ed-bg); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
 .section-card textarea { resize: vertical; min-height: 60px; }
-.section-card input::placeholder, .section-card textarea::placeholder { color: #666; }
-.img-drop { border: 2px dashed #533483; border-radius: 6px; padding: 12px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 6px; font-size: 12px; color: #888; position: relative; }
-.img-drop:hover, .img-drop.dragover { border-color: #e94560; background: rgba(233,69,96,.08); }
+.section-card input::placeholder, .section-card textarea::placeholder { color: var(--ed-placeholder); }
+.img-drop { border: 2px dashed var(--ed-border); border-radius: 6px; padding: 12px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 6px; font-size: 12px; color: var(--ed-muted); position: relative; }
+.img-drop:hover, .img-drop.dragover { border-color: var(--ed-accent); background: rgba(0,0,0,.03); }
 .img-drop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 5; }
 .img-drop.has-image input[type=file] { pointer-events: none; }
 .img-drop .thumb { max-width: 100%; max-height: 120px; border-radius: 4px; margin-bottom: 6px; display: block; }
-.img-drop .remove-img { position: absolute; top: 4px; right: 4px; background: #ff4757; color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 13px; cursor: pointer; line-height: 24px; text-align: center; z-index: 10; }
-.section-loc { font-size: 11px; color: #888; margin-top: 4px; }
-.section-loc.set { color: #4ecdc4; }
+.img-drop .remove-img { position: absolute; top: 4px; right: 4px; background: var(--ed-danger); color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 13px; cursor: pointer; line-height: 24px; text-align: center; z-index: 10; }
+.section-loc { font-size: 11px; color: var(--ed-muted); margin-top: 4px; }
+.section-loc.set { color: var(--ed-success); }
 .section-card-actions { display: flex; gap: 6px; }
 .section-card-actions .btn { padding: 3px 8px; font-size: 11px; }
 
 /* ── Preview Mode ── */
 #preview-mode {
-  --palette-accent: #c2410c;
-  --palette-bg: #faf8f5;
-  --palette-bg-dark: #f0ebe3;
-  --palette-bg-secondary: #e7e5e4;
-  --palette-border: #d6d3d1;
-  --palette-secondary: #78716c;
-  --palette-text: #1c1917;
-  --palette-text-muted: #57534e;
-  --palette-control-text: #1c1917;
+  --palette-accent: #A65E2E;
+  --palette-bg: #faf5ef;
+  --palette-bg-dark: #f2e8dd;
+  --palette-bg-secondary: #e8ddd0;
+  --palette-border: #d6c4b0;
+  --palette-secondary: #C49A6C;
+  --palette-text: #2A1F18;
+  --palette-text-muted: #7A6555;
+  --palette-control-text: #2A1F18;
 }
 #preview-mode { display: none; height: calc(100vh - 48px); overflow-y: auto; background: var(--palette-bg); }
 #preview-mode #hero-fullpage { width: 100%; height: calc(100vh - 48px); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: var(--palette-bg); background-size: cover; background-position: center; position: relative; }
@@ -110,21 +117,54 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 
 /* Scrollbar (edit mode) */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #1a1a2e; }
-::-webkit-scrollbar-thumb { background: #533483; border-radius: 3px; }
+::-webkit-scrollbar-track { background: var(--ed-bg); }
+::-webkit-scrollbar-thumb { background: var(--ed-secondary); border-radius: 3px; }
 
 /* Number markers on map (edit mode) */
-.numbered-marker { background: #e94560; color: #fff; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
-.numbered-marker.active-marker { background: #fff; color: #e94560; transform: scale(1.3); }
+.numbered-marker { background: var(--ed-accent); color: #fff; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+.numbered-marker.active-marker { background: #fff; color: var(--ed-accent); transform: scale(1.3); }
 
 /* Leaflet zoom control styling (edit mode) */
-.leaflet-control-zoom a { background: #16213e !important; color: #e0e0e0 !important; border-color: #0f3460 !important; }
-.leaflet-control-zoom a:hover { background: #0f3460 !important; color: #fff !important; }
+.leaflet-control-zoom a { background: var(--ed-panel) !important; color: var(--ed-text) !important; border-color: var(--ed-border) !important; }
+.leaflet-control-zoom a:hover { background: var(--ed-border) !important; color: var(--ed-text) !important; }
+
+/* ── Landing Page ── */
+#landing-page { min-height: 100vh; background: var(--ed-bg); padding: 40px; overflow-y: auto; }
+#landing-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+#landing-header h1 { font-size: 28px; font-weight: 700; color: var(--ed-accent); }
+#storymap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+.storymap-card { background: var(--ed-card); border: 1px solid var(--ed-border); border-radius: 8px; overflow: hidden; transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.storymap-card:hover { border-color: var(--ed-accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+.storymap-card-thumb { width: 100%; height: 160px; background: var(--ed-panel); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.storymap-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.storymap-card-thumb .placeholder-icon { font-size: 48px; color: var(--ed-secondary); }
+.storymap-card-body { padding: 14px; }
+.storymap-card-body h3 { font-size: 16px; color: var(--ed-text); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.storymap-card-meta { font-size: 12px; color: var(--ed-muted); margin-bottom: 12px; }
+.storymap-card-actions { display: flex; gap: 8px; }
+.storymap-card.create-new { border-style: dashed; border-color: var(--ed-secondary); display: flex; align-items: center; justify-content: center; min-height: 240px; }
+.storymap-card.create-new:hover { border-color: var(--ed-accent); background: rgba(0,0,0,.02); }
+.create-new-content { text-align: center; color: var(--ed-muted); }
+.create-new-content .plus { font-size: 48px; color: var(--ed-accent); display: block; margin-bottom: 8px; }
+#btn-back { background: transparent; border: 1px solid var(--ed-border); color: var(--ed-muted); padding: 6px 10px; border-radius: 4px; cursor: pointer; transition: background .2s, color .2s; display: inline-flex; align-items: center; justify-content: center; }
+#btn-back:hover { background: var(--ed-panel); color: var(--ed-text); }
+#btn-back svg { width: 18px; height: 18px; fill: currentColor; }
 </style>
 </head>
 <body>
 
-<div id="toolbar">
+<!-- LANDING PAGE -->
+<div id="landing-page">
+  <div id="landing-header">
+    <h1>StoryMap Builder</h1>
+  </div>
+  <div id="storymap-grid"></div>
+</div>
+
+<div id="toolbar" style="display:none">
+  <button id="btn-back" title="Back to all stories">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3L4 9v12h6v-7h4v7h6V9L12 3z"/></svg>
+    </button>
   <h1>StoryMap Builder</h1>
   <div id="palette-bar">
     <span class="palette-label">Palette:</span>
@@ -139,7 +179,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 </div>
 
 <!-- EDIT MODE -->
-<div id="edit-mode">
+<div id="edit-mode" style="display:none">
   <div id="section-panel">
     <div id="section-list"></div>
     <div id="add-section-bar">
@@ -166,30 +206,292 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 
 <script>
 // ── State ──
-let sections = JSON.parse(localStorage.getItem('storymap-sections') || '[]');
-let storyTitle = localStorage.getItem('storymap-title') || 'My Story';
-let heroSubtitle = localStorage.getItem('storymap-hero-subtitle') || 'Scroll down to explore';
-let heroImage = localStorage.getItem('storymap-hero-image') || '';
-let mapZoom = parseInt(localStorage.getItem('storymap-zoom') || '12');
+let sections = [];
+let storyTitle = 'My Story';
+let heroSubtitle = 'Scroll down to explore';
+let heroImage = '';
+let mapZoom = 12;
 let activeIdx = -1;
+let currentView = 'landing';
+let currentStorymapId = null;
 
 const PALETTES = {
-  linen: { name: 'Linen', accent: '#c2410c', bg: '#faf8f5', bgDark: '#f0ebe3', bgSecondary: '#e7e5e4', border: '#d6d3d1', secondary: '#78716c', text: '#1c1917', textMuted: '#57534e', controlText: '#1c1917', swatch: ['#c2410c','#faf8f5','#78716c'] },
-  slate: { name: 'Slate', accent: '#0f766e', bg: '#f8fafc', bgDark: '#e2e8f0', bgSecondary: '#cbd5e1', border: '#94a3b8', secondary: '#64748b', text: '#0f172a', textMuted: '#475569', controlText: '#0f172a', swatch: ['#0f766e','#f8fafc','#64748b'] },
-  forest: { name: 'Forest', accent: '#4ade80', bg: '#1a1f1a', bgDark: '#0f1410', bgSecondary: '#14532d', border: '#166534', secondary: '#22c55e', text: '#dcfce7', textMuted: '#86efac', controlText: '#dcfce7', swatch: ['#4ade80','#1a1f1a','#22c55e'] },
-  ocean: { name: 'Ocean', accent: '#0d9488', bg: '#f0fdfa', bgDark: '#ccfbf1', bgSecondary: '#99f6e4', border: '#5eead4', secondary: '#14b8a6', text: '#134e4a', textMuted: '#0f766e', controlText: '#134e4a', swatch: ['#0d9488','#f0fdfa','#14b8a6'] },
-  charcoal: { name: 'Charcoal', accent: '#38bdf8', bg: '#1e293b', bgDark: '#0f172a', bgSecondary: '#334155', border: '#475569', secondary: '#64748b', text: '#f1f5f9', textMuted: '#94a3b8', controlText: '#f1f5f9', swatch: ['#38bdf8','#1e293b','#64748b'] }
+  cabin: {
+    name: 'Cabin', swatch: ['#A65E2E','#FAF5EF','#C49A6C'],
+    accent: '#A65E2E', bg: '#faf5ef', bgDark: '#f2e8dd', bgSecondary: '#e8ddd0', border: '#d6c4b0', secondary: '#C49A6C', text: '#2A1F18', textMuted: '#7A6555', controlText: '#2A1F18',
+    ed: { bg:'#FAF5EF', panel:'#F2E8DD', card:'#FFF9F3', border:'#D6C4B0', accent:'#A65E2E', accentHover:'#8B4F26', secondary:'#C49A6C', secondaryHover:'#B08858', text:'#2A1F18', muted:'#7A6555', placeholder:'#B0A090', danger:'#C0503A', dangerHover:'#A3422F', success:'#5B8A5E', hintBg:'rgba(42,31,24,.8)' }
+  },
+  espresso: {
+    name: 'Espresso', swatch: ['#D4956A','#1C1410','#6B5242'],
+    accent: '#D4956A', bg: '#1C1410', bgDark: '#14100C', bgSecondary: '#352820', border: '#4A3828', secondary: '#6B5242', text: '#E8DCD0', textMuted: '#A89080', controlText: '#E8DCD0',
+    ed: { bg:'#1C1410', panel:'#2A1F18', card:'#352820', border:'#4A3828', accent:'#D4956A', accentHover:'#C08050', secondary:'#6B5242', secondaryHover:'#7D6352', text:'#E8DCD0', muted:'#A89080', placeholder:'#6B5A4A', danger:'#C06050', dangerHover:'#A04840', success:'#7BAA6E', hintBg:'rgba(0,0,0,.7)' }
+  },
+  sage: {
+    name: 'Sage', swatch: ['#5B7A5E','#F7F5F0','#8FA888'],
+    accent: '#5B7A5E', bg: '#f7f5f0', bgDark: '#ede8df', bgSecondary: '#ddd8cc', border: '#c8c2b4', secondary: '#8FA888', text: '#2D2A25', textMuted: '#6A6758', controlText: '#2D2A25',
+    ed: { bg:'#F7F5F0', panel:'#EDE8DF', card:'#FAFAF7', border:'#C8C2B4', accent:'#5B7A5E', accentHover:'#4A664D', secondary:'#8FA888', secondaryHover:'#7D9576', text:'#2D2A25', muted:'#7A7568', placeholder:'#B0AA9C', danger:'#B85040', dangerHover:'#9C4236', success:'#5B7A5E', hintBg:'rgba(30,28,24,.8)' }
+  },
+  midnight: {
+    name: 'Midnight', swatch: ['#7EB8DA','#161A22','#4A5570'],
+    accent: '#7EB8DA', bg: '#161A22', bgDark: '#11141A', bgSecondary: '#252B3A', border: '#3A4255', secondary: '#4A5570', text: '#D4DAE4', textMuted: '#8892A4', controlText: '#D4DAE4',
+    ed: { bg:'#161A22', panel:'#1E2330', card:'#252B3A', border:'#3A4255', accent:'#7EB8DA', accentHover:'#6AA0C0', secondary:'#4A5570', secondaryHover:'#5A6680', text:'#D4DAE4', muted:'#8892A4', placeholder:'#505A6C', danger:'#D06060', dangerHover:'#B04E4E', success:'#6AAA7E', hintBg:'rgba(0,0,0,.7)' }
+  },
+  dusk: {
+    name: 'Dusk', swatch: ['#5B6DAA','#F4F5F7','#8892B0'],
+    accent: '#5B6DAA', bg: '#f4f5f7', bgDark: '#e8eaf0', bgSecondary: '#d4d8e4', border: '#c4c8d4', secondary: '#8892B0', text: '#1A1D2A', textMuted: '#636980', controlText: '#1A1D2A',
+    ed: { bg:'#F4F5F7', panel:'#E8EAF0', card:'#FAFBFD', border:'#C4C8D4', accent:'#5B6DAA', accentHover:'#4A5A90', secondary:'#8892B0', secondaryHover:'#76809E', text:'#1A1D2A', muted:'#636980', placeholder:'#A0A4B4', danger:'#B04848', dangerHover:'#943C3C', success:'#5B8A6E', hintBg:'rgba(20,22,34,.8)' }
+  }
 };
-let paletteId = (localStorage.getItem('storymap-palette') || 'linen');
-if (!PALETTES[paletteId]) paletteId = 'linen';
+let paletteId = 'cabin';
 let editMap, previewMap;
 let editMarkers = [];
 let previewMarkers = [];
 let mode = 'edit';
 
-// ── Init ──
-document.getElementById('story-title').value = storyTitle;
+// ── ID & Thumbnail Utilities ──
+function generateId() {
+  return 'sm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+}
 
+function generateThumbnail(dataUrl, callback) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    // 400x240 matches card thumb display (~280x160) at ~1.4x for crisp rendering
+    canvas.width = 400; canvas.height = 240;
+    canvas.getContext('2d').drawImage(img, 0, 0, 400, 240);
+    callback(canvas.toDataURL('image/jpeg', 0.75));
+  };
+  img.src = dataUrl;
+}
+
+// ── Index Management ──
+function loadIndex() {
+  return JSON.parse(localStorage.getItem('storymap-index') || '[]');
+}
+
+function saveIndex(index) {
+  localStorage.setItem('storymap-index', JSON.stringify(index));
+}
+
+function updateIndexEntry(id, updates) {
+  const index = loadIndex();
+  const entry = index.find(e => e.id === id);
+  if (entry) {
+    Object.assign(entry, updates, { lastEdited: Date.now() });
+    saveIndex(index);
+  }
+}
+
+function removeFromIndex(id) {
+  saveIndex(loadIndex().filter(e => e.id !== id));
+}
+
+// ── Per-Storymap Load / Save ──
+function loadStorymap(id) {
+  const p = 'storymap:' + id + ':';
+  sections = JSON.parse(localStorage.getItem(p + 'sections') || '[]');
+  storyTitle = localStorage.getItem(p + 'title') || 'Untitled';
+  heroSubtitle = localStorage.getItem(p + 'hero-subtitle') || 'Scroll down to explore';
+  heroImage = localStorage.getItem(p + 'hero-image') || '';
+  mapZoom = parseInt(localStorage.getItem(p + 'zoom') || '12');
+  paletteId = localStorage.getItem(p + 'palette') || 'cabin';
+  if (!PALETTES[paletteId]) paletteId = 'cabin';
+  currentStorymapId = id;
+}
+
+function deleteStorymapData(id) {
+  const p = 'storymap:' + id + ':';
+  ['sections', 'title', 'hero-subtitle', 'hero-image', 'zoom', 'palette'].forEach(k => localStorage.removeItem(p + k));
+  removeFromIndex(id);
+}
+
+function save() {
+  if (!currentStorymapId) return;
+  const p = 'storymap:' + currentStorymapId + ':';
+  try {
+    localStorage.setItem(p + 'sections', JSON.stringify(sections));
+    localStorage.setItem(p + 'title', storyTitle);
+    localStorage.setItem(p + 'hero-subtitle', heroSubtitle);
+    localStorage.setItem(p + 'hero-image', heroImage);
+    localStorage.setItem(p + 'zoom', String(mapZoom));
+    localStorage.setItem(p + 'palette', paletteId);
+  } catch (e) {
+    console.warn('localStorage save failed (quota exceeded):', e);
+    alert('Storage full! Try using smaller images or fewer sections.');
+    return;
+  }
+  updateIndexEntry(currentStorymapId, { title: storyTitle });
+}
+
+// ── Migration ──
+function migrateIfNeeded() {
+  if (localStorage.getItem('storymap-index')) return;
+  const oldSections = localStorage.getItem('storymap-sections');
+  if (!oldSections) { saveIndex([]); return; }
+
+  const id = generateId();
+  const title = localStorage.getItem('storymap-title') || 'My Story';
+  const sub = localStorage.getItem('storymap-hero-subtitle') || '';
+  const img = localStorage.getItem('storymap-hero-image') || '';
+  const zoom = localStorage.getItem('storymap-zoom') || '12';
+  const pal = localStorage.getItem('storymap-palette') || 'cabin';
+
+  const p = 'storymap:' + id + ':';
+  localStorage.setItem(p + 'sections', oldSections);
+  localStorage.setItem(p + 'title', title);
+  localStorage.setItem(p + 'hero-subtitle', sub);
+  localStorage.setItem(p + 'hero-image', img);
+  localStorage.setItem(p + 'zoom', zoom);
+  localStorage.setItem(p + 'palette', pal);
+
+  const entry = { id: id, title: title, heroImageThumb: '', lastEdited: Date.now(), createdAt: Date.now() };
+  saveIndex([entry]);
+
+  if (img) {
+    generateThumbnail(img, (thumb) => {
+      const idx = loadIndex();
+      const e = idx.find(x => x.id === id);
+      if (e) { e.heroImageThumb = thumb; saveIndex(idx); }
+      if (currentView === 'landing') renderLanding();
+    });
+  }
+
+  ['storymap-sections', 'storymap-title', 'storymap-hero-subtitle', 'storymap-hero-image', 'storymap-zoom', 'storymap-palette'].forEach(k => localStorage.removeItem(k));
+}
+
+// ── Landing Page ──
+function renderLanding() {
+  const index = loadIndex();
+  const grid = document.getElementById('storymap-grid');
+  grid.innerHTML = '';
+
+  const createCard = document.createElement('div');
+  createCard.className = 'storymap-card create-new';
+  createCard.innerHTML = '<div class="create-new-content"><span class="plus">+</span><div>Create New StoryMap</div></div>';
+  createCard.addEventListener('click', createNewStorymap);
+  grid.appendChild(createCard);
+
+  index.sort((a, b) => b.lastEdited - a.lastEdited);
+
+  index.forEach(entry => {
+    const card = document.createElement('div');
+    card.className = 'storymap-card';
+    const dateStr = new Date(entry.lastEdited).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    card.innerHTML = `
+      <div class="storymap-card-thumb">
+        ${entry.heroImageThumb ? '<img src="' + entry.heroImageThumb + '" alt="">' : '<span class="placeholder-icon">&#x1F5FA;</span>'}
+      </div>
+      <div class="storymap-card-body">
+        <h3>${esc(entry.title || 'Untitled')}</h3>
+        <div class="storymap-card-meta">Last edited: ${dateStr}</div>
+        <div class="storymap-card-actions">
+          <button class="btn btn-primary btn-edit-map" data-id="${entry.id}">Edit</button>
+          <button class="btn btn-danger btn-delete-map" data-id="${entry.id}">Delete</button>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  grid.querySelectorAll('.btn-edit-map').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); openStorymap(btn.dataset.id); });
+  });
+  grid.querySelectorAll('.btn-delete-map').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm('Delete this storymap? This cannot be undone.')) { deleteStorymapData(btn.dataset.id); renderLanding(); }
+    });
+  });
+  grid.querySelectorAll('.storymap-card:not(.create-new)').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      const editBtn = card.querySelector('.btn-edit-map');
+      if (editBtn) openStorymap(editBtn.dataset.id);
+    });
+  });
+}
+
+// ── Navigation ──
+function showLanding() {
+  currentView = 'landing';
+  currentStorymapId = null;
+  document.body.style.overflow = 'auto';
+  document.body.style.height = 'auto';
+  document.getElementById('landing-page').style.display = 'block';
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('edit-mode').style.display = 'none';
+  document.getElementById('preview-mode').style.display = 'none';
+  if (editMap) { editMap.remove(); editMap = null; }
+  if (previewMap) { previewMap.remove(); previewMap = null; }
+  renderLanding();
+}
+
+function openStorymap(id) {
+  loadStorymap(id);
+  currentView = 'edit';
+  mode = 'edit';
+  activeIdx = -1;
+  document.body.style.overflow = 'hidden';
+  document.body.style.height = '100vh';
+  document.getElementById('landing-page').style.display = 'none';
+  document.getElementById('toolbar').style.display = 'flex';
+  document.getElementById('edit-mode').style.display = 'flex';
+  document.getElementById('preview-mode').style.display = 'none';
+  document.getElementById('btn-preview').style.display = '';
+  document.getElementById('btn-edit').style.display = 'none';
+  document.getElementById('story-title').value = storyTitle;
+  initEditMap();
+  renderPaletteBar();
+  applyPaletteToPreview();
+  if (sections.length === 0) {
+    sections.push({ title: 'Welcome', body: 'Click the map to set this section\'s location, then add more sections to build your story.', image: '', lat: null, lng: null, zoom: 10 });
+    save();
+  }
+  renderSections();
+  renderEditMarkers();
+}
+
+function initEditMap() {
+  if (editMap) editMap.remove();
+  editMap = L.map('map-edit').setView([20, 0], 2);
+  L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(editMap);
+  editMap.on('click', function(e) {
+    if (sections.length === 0 || activeIdx < 0) return;
+    const s = sections[activeIdx];
+    s.lat = e.latlng.lat;
+    s.lng = e.latlng.lng;
+    save();
+    renderSections();
+    renderEditMarkers();
+  });
+}
+
+function createNewStorymap() {
+  const id = generateId();
+  const index = loadIndex();
+  index.push({ id: id, title: 'Untitled Story', heroImageThumb: '', lastEdited: Date.now(), createdAt: Date.now() });
+  saveIndex(index);
+  const p = 'storymap:' + id + ':';
+  localStorage.setItem(p + 'sections', JSON.stringify([{ title: 'Welcome', body: 'Click the map to set this section\'s location, then add more sections to build your story.', image: '', lat: null, lng: null, zoom: 10 }]));
+  localStorage.setItem(p + 'title', 'Untitled Story');
+  localStorage.setItem(p + 'hero-subtitle', 'Scroll down to explore');
+  localStorage.setItem(p + 'hero-image', '');
+  localStorage.setItem(p + 'zoom', '12');
+  localStorage.setItem(p + 'palette', 'cabin');
+  openStorymap(id);
+}
+
+function returnToLanding() {
+  if (currentStorymapId) save();
+  if (previewMap) { previewMap.remove(); previewMap = null; }
+  showLanding();
+}
+
+// ── Palette ──
 function renderPaletteBar() {
   const container = document.getElementById('palette-buttons');
   container.innerHTML = Object.entries(PALETTES).map(([id, p]) =>
@@ -201,7 +503,7 @@ function renderPaletteBar() {
   container.querySelectorAll('.palette-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       paletteId = btn.dataset.palette;
-      localStorage.setItem('storymap-palette', paletteId);
+      save();
       renderPaletteBar();
       applyPaletteToPreview();
     });
@@ -209,50 +511,30 @@ function renderPaletteBar() {
 }
 
 function applyPaletteToPreview() {
-  const p = PALETTES[paletteId] || PALETTES.linen;
+  const p = PALETTES[paletteId] || PALETTES.cabin;
   const el = document.getElementById('preview-mode');
-  if (!el) return;
-  el.style.setProperty('--palette-accent', p.accent);
-  el.style.setProperty('--palette-bg', p.bg);
-  el.style.setProperty('--palette-bg-dark', p.bgDark);
-  el.style.setProperty('--palette-bg-secondary', p.bgSecondary);
-  el.style.setProperty('--palette-border', p.border);
-  el.style.setProperty('--palette-secondary', p.secondary);
-  el.style.setProperty('--palette-text', p.text);
-  el.style.setProperty('--palette-text-muted', p.textMuted);
-  el.style.setProperty('--palette-control-text', p.controlText);
-}
-
-renderPaletteBar();
-
-editMap = L.map('map-edit').setView([20, 0], 2);
-L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
-  maxZoom: 18,
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(editMap);
-
-// Click map to set location
-editMap.on('click', function(e) {
-  if (sections.length === 0 || activeIdx < 0) return;
-  const s = sections[activeIdx];
-  s.lat = e.latlng.lat;
-  s.lng = e.latlng.lng;
-  save();
-  renderSections();
-  renderEditMarkers();
-});
-
-// ── Save / Load ──
-function save() {
-  try {
-    localStorage.setItem('storymap-sections', JSON.stringify(sections));
-    localStorage.setItem('storymap-title', storyTitle);
-    localStorage.setItem('storymap-hero-subtitle', heroSubtitle);
-    localStorage.setItem('storymap-hero-image', heroImage);
-  } catch (e) {
-    console.warn('localStorage save failed (quota exceeded):', e);
-    alert('Storage full! Try using smaller images or fewer sections.');
+  if (el) {
+    el.style.setProperty('--palette-accent', p.accent);
+    el.style.setProperty('--palette-bg', p.bg);
+    el.style.setProperty('--palette-bg-dark', p.bgDark);
+    el.style.setProperty('--palette-bg-secondary', p.bgSecondary);
+    el.style.setProperty('--palette-border', p.border);
+    el.style.setProperty('--palette-secondary', p.secondary);
+    el.style.setProperty('--palette-text', p.text);
+    el.style.setProperty('--palette-text-muted', p.textMuted);
+    el.style.setProperty('--palette-control-text', p.controlText);
   }
+  // Also apply editor palette
+  const ed = p.ed;
+  const r = document.documentElement.style;
+  r.setProperty('--ed-bg', ed.bg); r.setProperty('--ed-panel', ed.panel);
+  r.setProperty('--ed-card', ed.card); r.setProperty('--ed-border', ed.border);
+  r.setProperty('--ed-accent', ed.accent); r.setProperty('--ed-accent-hover', ed.accentHover);
+  r.setProperty('--ed-secondary', ed.secondary); r.setProperty('--ed-secondary-hover', ed.secondaryHover);
+  r.setProperty('--ed-text', ed.text); r.setProperty('--ed-muted', ed.muted);
+  r.setProperty('--ed-placeholder', ed.placeholder);
+  r.setProperty('--ed-danger', ed.danger); r.setProperty('--ed-danger-hover', ed.dangerHover);
+  r.setProperty('--ed-success', ed.success); r.setProperty('--ed-hint-bg', ed.hintBg);
 }
 
 // Resize image to fit within max dimensions and return compressed data URL
@@ -310,14 +592,14 @@ function renderSections() {
   heroDrop.addEventListener('drop', (e) => {
     e.preventDefault(); e.stopPropagation(); heroDrop.classList.remove('dragover');
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) { const r = new FileReader(); r.onload = (ev) => { resizeImage(ev.target.result, 1200, (c) => { heroImage = c; save(); renderSections(); }); }; r.readAsDataURL(file); }
+    if (file && file.type.startsWith('image/')) { const r = new FileReader(); r.onload = (ev) => { resizeImage(ev.target.result, 1200, (c) => { heroImage = c; save(); if (currentStorymapId) generateThumbnail(c, (t) => updateIndexEntry(currentStorymapId, { heroImageThumb: t })); renderSections(); }); }; r.readAsDataURL(file); }
   });
   document.getElementById('hero-img-file').addEventListener('change', (e) => {
     const file = e.target.files[0];
-    if (file) { const r = new FileReader(); r.onload = (ev) => { resizeImage(ev.target.result, 1200, (c) => { heroImage = c; save(); renderSections(); }); }; r.readAsDataURL(file); }
+    if (file) { const r = new FileReader(); r.onload = (ev) => { resizeImage(ev.target.result, 1200, (c) => { heroImage = c; save(); if (currentStorymapId) generateThumbnail(c, (t) => updateIndexEntry(currentStorymapId, { heroImageThumb: t })); renderSections(); }); }; r.readAsDataURL(file); }
   });
   const heroRemoveBtn = document.getElementById('hero-img-remove');
-  if (heroRemoveBtn) heroRemoveBtn.addEventListener('click', (e) => { e.stopPropagation(); heroImage = ''; save(); renderSections(); });
+  if (heroRemoveBtn) heroRemoveBtn.addEventListener('click', (e) => { e.stopPropagation(); heroImage = ''; save(); if (currentStorymapId) updateIndexEntry(currentStorymapId, { heroImageThumb: '' }); renderSections(); });
 
   sections.forEach((s, i) => {
     const card = document.createElement('div');
@@ -349,7 +631,7 @@ function renderSections() {
       if (e.target.closest('button') || e.target.closest('.img-drop') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       activeIdx = i;
       renderSections();
-      if (hasLoc) editMap.flyTo([s.lat, s.lng], mapZoom);
+      if (hasLoc && editMap) editMap.flyTo([s.lat, s.lng], mapZoom);
     });
     list.appendChild(card);
   });
@@ -425,13 +707,14 @@ function handleImageFile(file, idx) {
 }
 
 function renderEditMarkers() {
+  if (!editMap) return;
   editMarkers.forEach(m => editMap.removeLayer(m));
   editMarkers = [];
   sections.forEach((s, i) => {
     if (s.lat == null) return;
     const icon = L.divIcon({ className: '', html: `<div class="numbered-marker ${i === activeIdx ? 'active-marker' : ''}">${i + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
     const m = L.marker([s.lat, s.lng], { icon }).addTo(editMap);
-    m.on('click', () => { activeIdx = i; renderSections(); renderEditMarkers(); editMap.flyTo([s.lat, s.lng], mapZoom); });
+    m.on('click', () => { activeIdx = i; renderSections(); renderEditMarkers(); if (editMap) editMap.flyTo([s.lat, s.lng], mapZoom); });
     editMarkers.push(m);
   });
 }
@@ -521,7 +804,7 @@ function enterPreview() {
     // Sync zoom from map controls back to mapZoom
     previewMap.on('zoomend', () => {
       mapZoom = previewMap.getZoom();
-      localStorage.setItem('storymap-zoom', mapZoom);
+      if (currentStorymapId) localStorage.setItem('storymap:' + currentStorymapId + ':zoom', String(mapZoom));
     });
 
     const first = sections.find(s => s.lat != null);
@@ -576,7 +859,7 @@ function enterEdit() {
   document.getElementById('btn-preview').style.display = '';
   document.getElementById('btn-edit').style.display = 'none';
   if (previewMap) { previewMap.remove(); previewMap = null; }
-  setTimeout(() => editMap.invalidateSize(), 100);
+  if (editMap) setTimeout(() => editMap.invalidateSize(), 100);
 }
 
 // ── Export ──
@@ -592,7 +875,7 @@ document.getElementById('btn-export').addEventListener('click', () => {
 
 function generateExport() {
   const secs = JSON.stringify(sections);
-  const pal = PALETTES[paletteId] || PALETTES.linen;
+  const pal = PALETTES[paletteId] || PALETTES.cabin;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -687,13 +970,12 @@ updateActiveSection();
 </html>`;
 }
 
-// ── Init render ──
-if (sections.length === 0) {
-  sections.push({ title: 'Welcome', body: 'Click the map to set this section\'s location, then add more sections to build your story.', image: '', lat: null, lng: null, zoom: 10 });
-  save();
-}
-renderSections();
-renderEditMarkers();
+// ── Event wiring ──
+document.getElementById('btn-back').addEventListener('click', returnToLanding);
+
+// ── Init ──
+migrateIfNeeded();
+showLanding();
 </script>
 </body>
 </html>
