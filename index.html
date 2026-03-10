@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StoryMap Builder</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; background: #1a1a2e; color: #e0e0e0; }
+
+/* ── Toolbar ── */
+#toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: #16213e; border-bottom: 1px solid #0f3460; min-height: 48px; z-index: 1000; flex-wrap: wrap; }
+#toolbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+#toolbar h1 { font-size: 16px; font-weight: 600; color: #e94560; margin-right: 8px; }
+#palette-bar { display: flex; align-items: center; gap: 6px; margin-right: 8px; }
+#palette-bar .palette-label { font-size: 12px; color: #888; margin-right: 4px; }
+#palette-buttons { display: flex; gap: 4px; }
+.palette-btn { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid #533483; border-radius: 6px; background: #0f3460; color: #ccc; font-size: 12px; cursor: pointer; transition: border-color .2s, background .2s; }
+.palette-btn:hover { border-color: #e94560; background: #1a1a2e; }
+.palette-btn.active { border-color: #e94560; background: rgba(233,69,96,.2); color: #fff; }
+.palette-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+#toolbar input[type=text] { background: #0f3460; border: 1px solid #533483; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 14px; width: 220px; }
+.btn { padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background .2s; }
+.btn-primary { background: #e94560; color: #fff; }
+.btn-primary:hover { background: #c73a52; }
+.btn-secondary { background: #533483; color: #fff; }
+.btn-secondary:hover { background: #6b44a0; }
+.btn-ghost { background: transparent; color: #aaa; border: 1px solid #333; }
+.btn-ghost:hover { background: #333; color: #fff; }
+.btn-danger { background: #ff4757; color: #fff; }
+.btn-danger:hover { background: #e03e4e; }
+
+/* ── Edit Mode ── */
+#edit-mode { display: flex; height: calc(100vh - 48px); }
+#section-panel { width: 55%; min-width: 400px; overflow-y: auto; background: #16213e; border-right: 1px solid #0f3460; display: flex; flex-direction: column; }
+#section-list { flex: 1; overflow-y: auto; padding: 8px; }
+#add-section-bar { padding: 10px; border-top: 1px solid #0f3460; }
+#map-edit-container { flex: 1; position: relative; }
+#map-edit { height: 100%; width: 100%; }
+.map-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.75); color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 12px; z-index: 800; pointer-events: none; }
+
+/* Hero card */
+.hero-card { background: #0f3460; border: 1px solid #e94560; border-radius: 6px; padding: 12px; margin-bottom: 12px; transition: opacity .2s, filter .2s; opacity: 0.45; filter: grayscale(30%); cursor: pointer; }
+.hero-card.active { opacity: 1; filter: none; }
+.hero-card .hero-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #e94560; margin-bottom: 8px; font-weight: 700; }
+.hero-card input, .hero-card textarea { width: 100%; background: #1a1a2e; border: 1px solid #533483; color: #e0e0e0; padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
+.hero-card textarea { resize: vertical; min-height: 40px; }
+.hero-card input::placeholder, .hero-card textarea::placeholder { color: #666; }
+
+/* Section cards */
+.section-card { background: #0f3460; border: 1px solid #533483; border-radius: 6px; padding: 12px; margin-bottom: 8px; transition: border-color .2s, opacity .2s, filter .2s; opacity: 0.45; filter: grayscale(30%); }
+.section-card.active { border-color: #e94560; opacity: 1; filter: none; }
+.section-card.dragging { opacity: 0.4; }
+.section-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.section-card-header .num { background: #e94560; color: #fff; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.section-card input, .section-card textarea { width: 100%; background: #1a1a2e; border: 1px solid #533483; color: #e0e0e0; padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
+.section-card textarea { resize: vertical; min-height: 60px; }
+.section-card input::placeholder, .section-card textarea::placeholder { color: #666; }
+.img-drop { border: 2px dashed #533483; border-radius: 6px; padding: 12px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 6px; font-size: 12px; color: #888; position: relative; }
+.img-drop:hover, .img-drop.dragover { border-color: #e94560; background: rgba(233,69,96,.08); }
+.img-drop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 5; }
+.img-drop.has-image input[type=file] { pointer-events: none; }
+.img-drop .thumb { max-width: 100%; max-height: 120px; border-radius: 4px; margin-bottom: 6px; display: block; }
+.img-drop .remove-img { position: absolute; top: 4px; right: 4px; background: #ff4757; color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 13px; cursor: pointer; line-height: 24px; text-align: center; z-index: 10; }
+.section-loc { font-size: 11px; color: #888; margin-top: 4px; }
+.section-loc.set { color: #4ecdc4; }
+.section-card-actions { display: flex; gap: 6px; }
+.section-card-actions .btn { padding: 3px 8px; font-size: 11px; }
+
+/* ── Preview Mode ── */
+#preview-mode {
+  --palette-accent: #c2410c;
+  --palette-bg: #faf8f5;
+  --palette-bg-dark: #f0ebe3;
+  --palette-bg-secondary: #e7e5e4;
+  --palette-border: #d6d3d1;
+  --palette-secondary: #78716c;
+  --palette-text: #1c1917;
+  --palette-text-muted: #57534e;
+  --palette-control-text: #1c1917;
+}
+#preview-mode { display: none; height: calc(100vh - 48px); overflow-y: auto; background: var(--palette-bg); }
+#preview-mode #hero-fullpage { width: 100%; height: calc(100vh - 48px); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: var(--palette-bg); background-size: cover; background-position: center; position: relative; }
+#preview-mode #hero-fullpage.has-bg::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,.55); }
+#preview-mode #hero-fullpage h1 { position: relative; z-index: 1; font-size: 48px; color: var(--palette-accent); text-shadow: 0 2px 12px rgba(0,0,0,.7); margin-bottom: 16px; }
+#preview-mode #hero-fullpage p { position: relative; z-index: 1; font-size: 20px; color: var(--palette-text-muted); text-shadow: 0 1px 6px rgba(0,0,0,.6); max-width: 600px; line-height: 1.6; }
+#preview-mode #hero-fullpage .scroll-hint { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1; font-size: 13px; color: #888; letter-spacing: 1px; }
+#preview-mode #hero-fullpage .scroll-hint span { display: block; margin-top: 6px; animation: bounce 2s infinite; font-size: 20px; }
+@keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
+#preview-mode #story-body { display: flex; align-items: flex-start; min-height: calc(100vh - 48px); background: var(--palette-bg); }
+#preview-mode #preview-left { width: 35%; background: var(--palette-bg); padding: 16px; }
+#preview-mode #map-preview { position: sticky; top: 16px; width: 100%; height: 35vh; border-bottom: 1px solid var(--palette-border); z-index: 10; border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+#preview-mode #narrative { width: 100%; }
+#preview-mode #preview-right { position: sticky; top: 0; width: 65%; height: calc(100vh - 48px); display: flex; align-items: center; justify-content: center; background: var(--palette-bg-dark); overflow: hidden; }
+#preview-mode #preview-right img { position: absolute; width: 100%; height: 100%; object-fit: contain; border-radius: 10px; transition: opacity 1.2s ease; opacity: 0; }
+#preview-mode #preview-right img.active-img { opacity: 1; }
+#preview-mode .story-section { min-height: 60vh; display: flex; flex-direction: column; justify-content: center; padding: 40px 30px; transition: opacity .4s; }
+#preview-mode .story-section.dim { opacity: 0.25; }
+#preview-mode .story-section h2 { font-size: 26px; color: var(--palette-accent); margin-bottom: 14px; }
+#preview-mode .story-section p { font-size: 15px; line-height: 1.7; color: var(--palette-text-muted); }
+#preview-mode .numbered-marker { background: var(--palette-accent); color: #fff; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+#preview-mode .numbered-marker.active-marker { background: #fff; color: var(--palette-accent); transform: scale(1.3); }
+#preview-mode .leaflet-control-zoom a { background: var(--palette-bg-secondary) !important; color: var(--palette-control-text) !important; border-color: var(--palette-border) !important; }
+#preview-mode .leaflet-control-zoom a:hover { background: var(--palette-border) !important; color: var(--palette-control-text) !important; }
+#preview-mode::-webkit-scrollbar { width: 6px; }
+#preview-mode::-webkit-scrollbar-track { background: var(--palette-bg); }
+#preview-mode::-webkit-scrollbar-thumb { background: var(--palette-secondary); border-radius: 3px; }
+
+/* Scrollbar (edit mode) */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1a1a2e; }
+::-webkit-scrollbar-thumb { background: #533483; border-radius: 3px; }
+
+/* Number markers on map (edit mode) */
+.numbered-marker { background: #e94560; color: #fff; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+.numbered-marker.active-marker { background: #fff; color: #e94560; transform: scale(1.3); }
+
+/* Leaflet zoom control styling (edit mode) */
+.leaflet-control-zoom a { background: #16213e !important; color: #e0e0e0 !important; border-color: #0f3460 !important; }
+.leaflet-control-zoom a:hover { background: #0f3460 !important; color: #fff !important; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h1>StoryMap Builder</h1>
+  <div id="palette-bar">
+    <span class="palette-label">Palette:</span>
+    <div id="palette-buttons"></div>
+  </div>
+  <div id="toolbar-right">
+    <input type="text" id="story-title" placeholder="Story title…" value="My Story">
+    <button class="btn btn-primary" id="btn-preview">Preview</button>
+    <button class="btn btn-secondary" id="btn-edit" style="display:none">Edit</button>
+    <button class="btn btn-ghost" id="btn-export">Export HTML</button>
+  </div>
+</div>
+
+<!-- EDIT MODE -->
+<div id="edit-mode">
+  <div id="section-panel">
+    <div id="section-list"></div>
+    <div id="add-section-bar">
+      <button class="btn btn-primary" style="width:100%" id="btn-add">+ Add Section</button>
+    </div>
+  </div>
+  <div id="map-edit-container">
+    <div id="map-edit"></div>
+    <div class="map-hint" id="map-hint">Select a section, then click the map to set its location</div>
+  </div>
+</div>
+
+<!-- PREVIEW MODE -->
+<div id="preview-mode">
+  <div id="hero-fullpage"></div>
+  <div id="story-body">
+    <div id="preview-left">
+      <div id="map-preview"></div>
+      <div id="narrative"></div>
+    </div>
+    <div id="preview-right"></div>
+  </div>
+</div>
+
+<script>
+// ── State ──
+let sections = JSON.parse(localStorage.getItem('storymap-sections') || '[]');
+let storyTitle = localStorage.getItem('storymap-title') || 'My Story';
+let heroSubtitle = localStorage.getItem('storymap-hero-subtitle') || 'Scroll down to explore';
+let heroImage = localStorage.getItem('storymap-hero-image') || '';
+let mapZoom = parseInt(localStorage.getItem('storymap-zoom') || '12');
+let activeIdx = -1;
+
+const PALETTES = {
+  linen: { name: 'Linen', accent: '#c2410c', bg: '#faf8f5', bgDark: '#f0ebe3', bgSecondary: '#e7e5e4', border: '#d6d3d1', secondary: '#78716c', text: '#1c1917', textMuted: '#57534e', controlText: '#1c1917', swatch: ['#c2410c','#faf8f5','#78716c'] },
+  slate: { name: 'Slate', accent: '#0f766e', bg: '#f8fafc', bgDark: '#e2e8f0', bgSecondary: '#cbd5e1', border: '#94a3b8', secondary: '#64748b', text: '#0f172a', textMuted: '#475569', controlText: '#0f172a', swatch: ['#0f766e','#f8fafc','#64748b'] },
+  forest: { name: 'Forest', accent: '#4ade80', bg: '#1a1f1a', bgDark: '#0f1410', bgSecondary: '#14532d', border: '#166534', secondary: '#22c55e', text: '#dcfce7', textMuted: '#86efac', controlText: '#dcfce7', swatch: ['#4ade80','#1a1f1a','#22c55e'] },
+  ocean: { name: 'Ocean', accent: '#0d9488', bg: '#f0fdfa', bgDark: '#ccfbf1', bgSecondary: '#99f6e4', border: '#5eead4', secondary: '#14b8a6', text: '#134e4a', textMuted: '#0f766e', controlText: '#134e4a', swatch: ['#0d9488','#f0fdfa','#14b8a6'] },
+  charcoal: { name: 'Charcoal', accent: '#38bdf8', bg: '#1e293b', bgDark: '#0f172a', bgSecondary: '#334155', border: '#475569', secondary: '#64748b', text: '#f1f5f9', textMuted: '#94a3b8', controlText: '#f1f5f9', swatch: ['#38bdf8','#1e293b','#64748b'] }
+};
+let paletteId = (localStorage.getItem('storymap-palette') || 'linen');
+if (!PALETTES[paletteId]) paletteId = 'linen';
+let editMap, previewMap;
+let editMarkers = [];
+let previewMarkers = [];
+let mode = 'edit';
+
+// ── Init ──
+document.getElementById('story-title').value = storyTitle;
+
+function renderPaletteBar() {
+  const container = document.getElementById('palette-buttons');
+  container.innerHTML = Object.entries(PALETTES).map(([id, p]) =>
+    `<button class="palette-btn ${id === paletteId ? 'active' : ''}" data-palette="${id}" title="${p.name}">
+      <span class="palette-swatch" style="background:linear-gradient(135deg,${p.swatch[0]} 0%,${p.swatch[1]} 50%,${p.swatch[2]} 100%)"></span>
+      <span class="palette-name">${p.name}</span>
+    </button>`
+  ).join('');
+  container.querySelectorAll('.palette-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      paletteId = btn.dataset.palette;
+      localStorage.setItem('storymap-palette', paletteId);
+      renderPaletteBar();
+      applyPaletteToPreview();
+    });
+  });
+}
+
+function applyPaletteToPreview() {
+  const p = PALETTES[paletteId] || PALETTES.linen;
+  const el = document.getElementById('preview-mode');
+  if (!el) return;
+  el.style.setProperty('--palette-accent', p.accent);
+  el.style.setProperty('--palette-bg', p.bg);
+  el.style.setProperty('--palette-bg-dark', p.bgDark);
+  el.style.setProperty('--palette-bg-secondary', p.bgSecondary);
+  el.style.setProperty('--palette-border', p.border);
+  el.style.setProperty('--palette-secondary', p.secondary);
+  el.style.setProperty('--palette-text', p.text);
+  el.style.setProperty('--palette-text-muted', p.textMuted);
+  el.style.setProperty('--palette-control-text', p.controlText);
+}
+
+renderPaletteBar();
+
+editMap = L.map('map-edit').setView([20, 0], 2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap'
+}).addTo(editMap);
+
+// Click map to set location
+editMap.on('click', function(e) {
+  if (sections.length === 0 || activeIdx < 0) return;
+  const s = sections[activeIdx];
+  s.lat = e.latlng.lat;
+  s.lng = e.latlng.lng;
+  save();
+  renderSections();
+  renderEditMarkers();
+});
+
+// ── Save / Load ──
+function save() {
+  try {
+    localStorage.setItem('storymap-sections', JSON.stringify(sections));
+    localStorage.setItem('storymap-title', storyTitle);
+    localStorage.setItem('storymap-hero-subtitle', heroSubtitle);
+    localStorage.setItem('storymap-hero-image', heroImage);
+  } catch (e) {
+    console.warn('localStorage save failed (quota exceeded):', e);
+    alert('Storage full! Try using smaller images or fewer sections.');
+  }
+}
+
+// Resize image to fit within max dimensions and return compressed data URL
+function resizeImage(dataUrl, maxSize, callback) {
+  const img = new Image();
+  img.onload = () => {
+    let w = img.width, h = img.height;
+    if (w > maxSize || h > maxSize) {
+      if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+      else { w = Math.round(w * maxSize / h); h = maxSize; }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL('image/jpeg', 0.7));
+  };
+  img.src = dataUrl;
+}
+
+// ── Render section cards ──
+function renderSections() {
+  const list = document.getElementById('section-list');
+  list.innerHTML = '';
+
+  // Hero card
+  const hero = document.createElement('div');
+  hero.className = 'hero-card' + (activeIdx === -1 ? ' active' : '');
+  hero.innerHTML = `
+    <div class="hero-label">Hero / Intro Section</div>
+    <input type="text" id="hero-title-input" placeholder="Story title" value="${esc(storyTitle)}">
+    <textarea id="hero-subtitle-input" placeholder="Subtitle or intro text">${esc(heroSubtitle)}</textarea>
+    <div class="img-drop${heroImage ? ' has-image' : ''}" id="hero-img-drop">
+      ${heroImage ? `<img class="thumb" src="${heroImage}"><button class="remove-img" id="hero-img-remove">&#128465;</button>` : 'Drop hero background image or click to upload'}
+      <input type="file" accept="image/*" id="hero-img-file">
+    </div>
+  `;
+  hero.addEventListener('click', (e) => {
+    if (e.target.closest('button') || e.target.closest('.img-drop') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    activeIdx = -1;
+    renderSections();
+  });
+  list.appendChild(hero);
+  document.getElementById('hero-title-input').addEventListener('input', (e) => {
+    storyTitle = e.target.value;
+    document.getElementById('story-title').value = storyTitle;
+    save();
+  });
+  document.getElementById('hero-subtitle-input').addEventListener('input', (e) => {
+    heroSubtitle = e.target.value;
+    save();
+  });
+  const heroDrop = document.getElementById('hero-img-drop');
+  heroDrop.addEventListener('dragover', (e) => { e.preventDefault(); heroDrop.classList.add('dragover'); });
+  heroDrop.addEventListener('dragleave', () => heroDrop.classList.remove('dragover'));
+  heroDrop.addEventListener('drop', (e) => {
+    e.preventDefault(); e.stopPropagation(); heroDrop.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) { const r = new FileReader(); r.onload = (ev) => { resizeImage(ev.target.result, 1200, (c) => { heroImage = c; save(); renderSections(); }); }; r.readAsDataURL(file); }
+  });
+  document.getElementById('hero-img-file').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) { const r = new FileReader(); r.onload = (ev) => { resizeImage(ev.target.result, 1200, (c) => { heroImage = c; save(); renderSections(); }); }; r.readAsDataURL(file); }
+  });
+  const heroRemoveBtn = document.getElementById('hero-img-remove');
+  if (heroRemoveBtn) heroRemoveBtn.addEventListener('click', (e) => { e.stopPropagation(); heroImage = ''; save(); renderSections(); });
+
+  sections.forEach((s, i) => {
+    const card = document.createElement('div');
+    card.className = 'section-card' + (i === activeIdx ? ' active' : '');
+    card.draggable = false;
+    card.dataset.idx = i;
+    const hasLoc = s.lat != null;
+    card.innerHTML = `
+      <div class="section-card-header">
+        <span class="num">${i + 1}</span>
+        <div class="section-card-actions">
+          <button class="btn btn-ghost move-up" data-i="${i}" ${i === 0 ? 'disabled' : ''}>&#9650;</button>
+          <button class="btn btn-ghost move-down" data-i="${i}" ${i === sections.length - 1 ? 'disabled' : ''}>&#9660;</button>
+          <button class="btn btn-danger del-btn" data-i="${i}">&times;</button>
+        </div>
+      </div>
+      <input type="text" placeholder="Section title" value="${esc(s.title)}" data-field="title" data-i="${i}">
+      <textarea placeholder="Section content…" data-field="body" data-i="${i}">${esc(s.body)}</textarea>
+      <div class="img-drop" data-i="${i}">
+        ${s.image ? `<img class="thumb" src="${s.image}"><button class="remove-img" data-i="${i}">&#128465;</button>` : 'Drop image here or click to upload'}
+        <input type="file" accept="image/*" data-i="${i}">
+      </div>
+      <div class="section-loc ${hasLoc ? 'set' : ''}">
+        ${hasLoc ? `📍 ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}` : 'Click map to set location →'}
+      </div>
+    `;
+    // Select on click
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('.img-drop') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      activeIdx = i;
+      renderSections();
+      if (hasLoc) editMap.flyTo([s.lat, s.lng], mapZoom);
+    });
+    list.appendChild(card);
+  });
+
+  // Event delegation for inputs
+  list.querySelectorAll('input[data-field], textarea[data-field]').forEach(el => {
+    el.addEventListener('input', (e) => {
+      const idx = parseInt(e.target.dataset.i);
+      sections[idx][e.target.dataset.field] = e.target.value;
+      save();
+    });
+  });
+  list.querySelectorAll('.del-btn').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.i);
+      sections.splice(idx, 1);
+      if (activeIdx >= sections.length) activeIdx = Math.max(0, sections.length - 1);
+      save(); renderSections(); renderEditMarkers();
+    });
+  });
+  list.querySelectorAll('.move-up').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.i);
+      [sections[idx - 1], sections[idx]] = [sections[idx], sections[idx - 1]];
+      activeIdx = idx - 1;
+      save(); renderSections(); renderEditMarkers();
+    });
+  });
+  list.querySelectorAll('.move-down').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.i);
+      [sections[idx], sections[idx + 1]] = [sections[idx + 1], sections[idx]];
+      activeIdx = idx + 1;
+      save(); renderSections(); renderEditMarkers();
+    });
+  });
+  // Image drop zones
+  list.querySelectorAll('.img-drop').forEach(drop => {
+    const idx = parseInt(drop.dataset.i);
+    drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', (e) => {
+      e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) handleImageFile(file, idx);
+    });
+    const fileInput = drop.querySelector('input[type=file]');
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) handleImageFile(file, idx);
+    });
+  });
+  list.querySelectorAll('.remove-img').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(el.dataset.i);
+      sections[idx].image = '';
+      save(); renderSections();
+    });
+  });
+}
+
+function handleImageFile(file, idx) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    resizeImage(e.target.result, 1200, (compressed) => {
+      sections[idx].image = compressed;
+      activeIdx = idx;
+      save(); renderSections();
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderEditMarkers() {
+  editMarkers.forEach(m => editMap.removeLayer(m));
+  editMarkers = [];
+  sections.forEach((s, i) => {
+    if (s.lat == null) return;
+    const icon = L.divIcon({ className: '', html: `<div class="numbered-marker ${i === activeIdx ? 'active-marker' : ''}">${i + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+    const m = L.marker([s.lat, s.lng], { icon }).addTo(editMap);
+    m.on('click', () => { activeIdx = i; renderSections(); renderEditMarkers(); editMap.flyTo([s.lat, s.lng], mapZoom); });
+    editMarkers.push(m);
+  });
+}
+
+function esc(str) { return (str || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+// ── Add section ──
+document.getElementById('btn-add').addEventListener('click', () => {
+  sections.push({ title: '', body: '', image: '', lat: null, lng: null, zoom: 10 });
+  activeIdx = sections.length - 1;
+  save(); renderSections(); renderEditMarkers();
+  // Scroll to new card
+  const list = document.getElementById('section-list');
+  list.scrollTop = list.scrollHeight;
+});
+
+// ── Title ──
+document.getElementById('story-title').addEventListener('input', (e) => { storyTitle = e.target.value; save(); renderSections(); });
+
+// ── Mode switching ──
+document.getElementById('btn-preview').addEventListener('click', () => enterPreview());
+document.getElementById('btn-edit').addEventListener('click', () => enterEdit());
+
+function enterPreview() {
+  mode = 'preview';
+  document.getElementById('edit-mode').style.display = 'none';
+  document.getElementById('preview-mode').style.display = 'block';
+  applyPaletteToPreview();
+  document.getElementById('btn-preview').style.display = 'none';
+  document.getElementById('btn-edit').style.display = '';
+
+  // Build hero fullpage
+  const heroEl = document.getElementById('hero-fullpage');
+  heroEl.className = '';
+  heroEl.style.backgroundImage = '';
+  heroEl.innerHTML = `<h1>${esc(storyTitle)}</h1><p>${esc(heroSubtitle)}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div>`;
+  if (heroImage) {
+    heroEl.classList.add('has-bg');
+    heroEl.style.backgroundImage = `url(${heroImage})`;
+  }
+
+  // Build narrative
+  const narrative = document.getElementById('narrative');
+  narrative.innerHTML = '';
+
+  // Build image stack (right side)
+  const imgPanel = document.getElementById('preview-right');
+  imgPanel.innerHTML = '';
+
+  sections.forEach((s, i) => {
+    // Narrative text
+    const div = document.createElement('div');
+    div.className = 'story-section';
+    div.dataset.idx = i;
+    div.innerHTML = `
+      <h2>${i + 1}. ${esc(s.title) || 'Untitled'}</h2>
+      <p>${(s.body || '').replace(/\n/g, '<br>')}</p>
+    `;
+    narrative.appendChild(div);
+
+    // Image in right panel
+    if (s.image) {
+      const img = document.createElement('img');
+      img.src = s.image;
+      img.dataset.idx = i;
+      img.onerror = () => img.style.display = 'none';
+      imgPanel.appendChild(img);
+    }
+  });
+
+  // Init preview map
+  setTimeout(() => {
+    if (previewMap) previewMap.remove();
+    previewMap = L.map('map-preview', { zoomControl: true, scrollWheelZoom: false }).setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(previewMap);
+
+    // Add markers
+    sections.forEach((s, i) => {
+      if (s.lat == null) return;
+      const icon = L.divIcon({ className: '', html: `<div class="numbered-marker" id="pm-${i}">${i + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+      L.marker([s.lat, s.lng], { icon }).addTo(previewMap);
+    });
+
+    // Sync zoom from map controls back to mapZoom
+    previewMap.on('zoomend', () => {
+      mapZoom = previewMap.getZoom();
+      localStorage.setItem('storymap-zoom', mapZoom);
+    });
+
+    const first = sections.find(s => s.lat != null);
+    if (first) previewMap.setView([first.lat, first.lng], mapZoom);
+
+    // Scroll-based: pick section whose center is closest to viewport center (reliable for scroll-up)
+    const scrollRoot = document.getElementById('preview-mode');
+    let lastActiveIdx = -1;
+    const updateActiveSection = () => {
+      const sectionEls = narrative.querySelectorAll('.story-section[data-idx]');
+      const rootRect = scrollRoot.getBoundingClientRect();
+      const viewportCenterY = rootRect.top + rootRect.height / 2;
+
+      let best = null;
+      let bestDist = Infinity;
+      sectionEls.forEach(el => {
+        const rect = el.getBoundingClientRect();
+        const centerY = rect.top + rect.height / 2;
+        const dist = Math.abs(centerY - viewportCenterY);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = el;
+        }
+      });
+      if (!best) return;
+      const idx = parseInt(best.dataset.idx);
+      if (isNaN(idx)) return;
+      if (idx === lastActiveIdx) return;
+      lastActiveIdx = idx;
+      const s = sections[idx];
+
+      narrative.querySelectorAll('.story-section').forEach(el => el.classList.add('dim'));
+      best.classList.remove('dim');
+      if (s.lat != null) previewMap.flyTo([s.lat, s.lng], mapZoom, { duration: 0.7, easeLinearity: 0.5 });
+      document.querySelectorAll('.numbered-marker').forEach(el => el.classList.remove('active-marker'));
+      const pm = document.getElementById('pm-' + idx);
+      if (pm) pm.classList.add('active-marker');
+      imgPanel.querySelectorAll('img').forEach(img => img.classList.remove('active-img'));
+      const activeImg = imgPanel.querySelector(`img[data-idx="${idx}"]`);
+      if (activeImg) activeImg.classList.add('active-img');
+    };
+
+    scrollRoot.addEventListener('scroll', updateActiveSection, { passive: true });
+    updateActiveSection();
+  }, 100);
+}
+
+function enterEdit() {
+  mode = 'edit';
+  document.getElementById('edit-mode').style.display = 'flex';
+  document.getElementById('preview-mode').style.display = 'none';
+  document.getElementById('btn-preview').style.display = '';
+  document.getElementById('btn-edit').style.display = 'none';
+  if (previewMap) { previewMap.remove(); previewMap = null; }
+  setTimeout(() => editMap.invalidateSize(), 100);
+}
+
+// ── Export ──
+document.getElementById('btn-export').addEventListener('click', () => {
+  const html = generateExport();
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (storyTitle || 'storymap').replace(/[^a-z0-9]/gi, '_') + '.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+function generateExport() {
+  const secs = JSON.stringify(sections);
+  const pal = PALETTES[paletteId] || PALETTES.linen;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${esc(storyTitle)}</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:${pal.bg};color:${pal.text};height:100vh;overflow:hidden}
+#scroll-container{height:100vh;overflow-y:auto;background:${pal.bg}}
+#hero{width:100%;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:${pal.bg};background-size:cover;background-position:center;position:relative}
+#hero.has-bg::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.55)}
+#hero h1{position:relative;z-index:1;font-size:48px;color:${pal.accent};text-shadow:0 2px 12px rgba(0,0,0,.7);margin-bottom:16px}
+#hero p{position:relative;z-index:1;font-size:20px;color:${pal.textMuted};text-shadow:0 1px 6px rgba(0,0,0,.6);max-width:600px;line-height:1.6}
+#hero .scroll-hint{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);z-index:1;font-size:13px;color:#888;letter-spacing:1px}
+#hero .scroll-hint span{display:block;margin-top:6px;animation:bounce 2s infinite;font-size:20px}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+#story-body{display:flex;align-items:flex-start;min-height:100vh;background:${pal.bg}}
+#left{width:35%;background:${pal.bg};padding:16px}
+#map{position:sticky;top:16px;width:100%;height:35vh;border-bottom:1px solid ${pal.border};z-index:10;border-radius:8px;overflow:hidden;margin-bottom:16px}
+#narrative{width:100%}
+#right{position:sticky;top:0;width:65%;height:100vh;display:flex;align-items:center;justify-content:center;background:${pal.bgDark};overflow:hidden}
+#right img{position:absolute;width:100%;height:100%;object-fit:contain;border-radius:10px;transition:opacity 1.2s ease;opacity:0}
+#right img.active-img{opacity:1}
+.story-section{min-height:60vh;display:flex;flex-direction:column;justify-content:center;padding:40px 30px;transition:opacity .4s}
+.story-section.dim{opacity:.25}
+.story-section h2{font-size:26px;color:${pal.accent};margin-bottom:14px}
+.story-section p{font-size:15px;line-height:1.7;color:${pal.textMuted}}
+.numbered-marker{background:${pal.accent};color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.numbered-marker.active-marker{background:#fff;color:${pal.accent};transform:scale(1.3)}
+.leaflet-control-zoom a{background:${pal.bgSecondary}!important;color:${pal.controlText}!important;border-color:${pal.border}!important}
+.leaflet-control-zoom a:hover{background:${pal.border}!important;color:${pal.controlText}!important}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:${pal.bg}}::-webkit-scrollbar-thumb{background:${pal.secondary};border-radius:3px}
+</style>
+</head>
+<body>
+<div id="scroll-container">
+<div id="hero"><h1>${esc(storyTitle).replace(/'/g, "\\'")}</h1><p>${esc(heroSubtitle).replace(/'/g, "\\'")}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div></div>
+<div id="story-body"><div id="left"><div id="map"></div><div id="narrative"></div></div><div id="right"></div></div>
+</div>
+<script>
+var sections=${secs};
+var sc=document.getElementById('scroll-container');
+${heroImage ? `var h=document.getElementById('hero');h.classList.add('has-bg');h.style.backgroundImage='url(${heroImage.replace(/'/g, "\\'")})'` : ''}
+var narrative=document.getElementById('narrative');
+var right=document.getElementById('right');
+sections.forEach(function(s,i){
+  var d=document.createElement('div');d.className='story-section';d.dataset.idx=i;
+  d.innerHTML='<h2>'+(i+1)+'. '+(s.title||'Untitled')+'</h2><p>'+(s.body||'').replace(/\\n/g,'<br>')+'</p>';
+  narrative.appendChild(d);
+  if(s.image){var img=document.createElement('img');img.src=s.image;img.dataset.idx=i;img.onerror=function(){this.style.display='none'};right.appendChild(img);}
+});
+var map=L.map('map',{zoomControl:true,scrollWheelZoom:false}).setView([20,0],2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+sections.forEach(function(s,i){
+  if(s.lat==null)return;
+  var icon=L.divIcon({className:'',html:'<div class="numbered-marker" id="pm-'+i+'">'+(i+1)+'</div>',iconSize:[26,26],iconAnchor:[13,13]});
+  L.marker([s.lat,s.lng],{icon:icon}).addTo(map);
+});
+var first=sections.find(function(s){return s.lat!=null});
+if(first)map.setView([first.lat,first.lng],${mapZoom});
+var lastActiveIdx=-1;
+var updateActiveSection=function(){
+  var sectionEls=narrative.querySelectorAll('.story-section[data-idx]');
+  var rootRect=sc.getBoundingClientRect();
+  var viewportCenterY=rootRect.top+rootRect.height/2;
+  var best=null,bestDist=Infinity;
+  sectionEls.forEach(function(el){
+    var rect=el.getBoundingClientRect();
+    var centerY=rect.top+rect.height/2;
+    var dist=Math.abs(centerY-viewportCenterY);
+    if(dist<bestDist){bestDist=dist;best=el;}
+  });
+  if(!best)return;
+  var idx=parseInt(best.dataset.idx);if(isNaN(idx))return;
+  if(idx===lastActiveIdx)return;
+  lastActiveIdx=idx;
+  var s=sections[idx];
+  narrative.querySelectorAll('.story-section').forEach(function(el){el.classList.add('dim')});
+  best.classList.remove('dim');
+  if(s.lat!=null)map.flyTo([s.lat,s.lng],${mapZoom},{duration:0.7,easeLinearity:0.5});
+  document.querySelectorAll('.numbered-marker').forEach(function(el){el.classList.remove('active-marker')});
+  var pm=document.getElementById('pm-'+idx);if(pm)pm.classList.add('active-marker');
+  right.querySelectorAll('img').forEach(function(img){img.classList.remove('active-img')});
+  var ai=right.querySelector('img[data-idx="'+idx+'"]');if(ai)ai.classList.add('active-img');
+};
+sc.addEventListener('scroll',updateActiveSection,{passive:true});
+updateActiveSection();
+<\/script>
+</body>
+</html>`;
+}
+
+// ── Init render ──
+if (sections.length === 0) {
+  sections.push({ title: 'Welcome', body: 'Click the map to set this section\'s location, then add more sections to build your story.', image: '', lat: null, lng: null, zoom: 10 });
+  save();
+}
+renderSections();
+renderEditMarkers();
+</script>
+</body>
+</html>
