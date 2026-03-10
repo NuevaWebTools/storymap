@@ -226,8 +226,9 @@ function applyPaletteToPreview() {
 renderPaletteBar();
 
 editMap = L.map('map-edit').setView([20, 0], 2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap'
+L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(editMap);
 
 // Click map to set location
@@ -505,8 +506,9 @@ function enterPreview() {
   setTimeout(() => {
     if (previewMap) previewMap.remove();
     previewMap = L.map('map-preview', { zoomControl: true, scrollWheelZoom: false }).setView([20, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap'
+    L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(previewMap);
 
     // Add markers
@@ -645,7 +647,7 @@ sections.forEach(function(s,i){
   if(s.image){var img=document.createElement('img');img.src=s.image;img.dataset.idx=i;img.onerror=function(){this.style.display='none'};right.appendChild(img);}
 });
 var map=L.map('map',{zoomControl:true,scrollWheelZoom:false}).setView([20,0],2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
 sections.forEach(function(s,i){
   if(s.lat==null)return;
   var icon=L.divIcon({className:'',html:'<div class="numbered-marker" id="pm-'+i+'">'+(i+1)+'</div>',iconSize:[26,26],iconAnchor:[13,13]});
