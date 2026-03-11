@@ -55,6 +55,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 .hero-card input, .hero-card textarea { width: 100%; background: var(--ed-bg); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
 .hero-card textarea { resize: vertical; min-height: 40px; }
 .hero-card input::placeholder, .hero-card textarea::placeholder { color: var(--ed-placeholder); }
+.hero-card input[readonly], .hero-card textarea[readonly] { cursor: default; }
 .hero-color-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .hero-color-row label { font-size: 12px; color: var(--ed-muted); }
 .hero-color-row input[type=color] { width: 36px; height: 28px; padding: 2px; border: 1px solid var(--ed-border); border-radius: 4px; cursor: pointer; background: var(--ed-bg); }
@@ -70,6 +71,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 .section-card input, .section-card textarea { width: 100%; background: var(--ed-bg); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
 .section-card textarea { resize: vertical; min-height: 60px; }
 .section-card input::placeholder, .section-card textarea::placeholder { color: var(--ed-placeholder); }
+.section-card input[readonly], .section-card textarea[readonly] { cursor: default; }
 .img-drop { border: 2px dashed var(--ed-border); border-radius: 6px; padding: 12px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 6px; font-size: 12px; color: var(--ed-muted); position: relative; }
 .img-drop:hover, .img-drop.dragover { border-color: var(--ed-accent); background: rgba(0,0,0,.03); }
 .img-drop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 5; }
@@ -662,13 +664,14 @@ function renderSections() {
   // Hero card
   const hero = document.createElement('div');
   hero.className = 'hero-card' + (activeIdx === -1 ? ' active' : '');
+  const heroActive = activeIdx === -1;
   hero.innerHTML = `
     <div class="hero-label">Hero / Intro Section</div>
-    <input type="text" id="hero-title-input" placeholder="Story title" value="${esc(storyTitle)}">
-    <textarea id="hero-subtitle-input" placeholder="Subtitle or intro text">${esc(heroSubtitle)}</textarea>
+    <input type="text" id="hero-title-input" placeholder="Story title" value="${esc(storyTitle)}" ${!heroActive ? 'readonly' : ''}>
+    <textarea id="hero-subtitle-input" placeholder="Subtitle or intro text" ${!heroActive ? 'readonly' : ''}>${esc(heroSubtitle)}</textarea>
     <div class="hero-color-row">
       <label for="hero-text-color">Text color:</label>
-      <input type="color" id="hero-text-color" value="${heroTextColor || '#ffffff'}" title="Hero text color">
+      <input type="color" id="hero-text-color" value="${heroTextColor || '#ffffff'}" title="Hero text color" ${!heroActive ? 'disabled' : ''}>
       <span class="hero-color-reset" id="hero-color-reset">Use palette default</span>
     </div>
     <div class="img-drop${heroImage ? ' has-image' : ''}" id="hero-img-drop">
@@ -677,7 +680,8 @@ function renderSections() {
     </div>
   `;
   hero.addEventListener('click', (e) => {
-    if (e.target.closest('button') || e.target.closest('.img-drop') || e.target.closest('.hero-color-row') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.target.closest('button') || e.target.closest('.img-drop')) return;
+    if (heroActive && (e.target.closest('.hero-color-row') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
     activeIdx = -1;
     renderSections();
   });
@@ -733,8 +737,8 @@ function renderSections() {
           <button class="btn btn-danger del-btn" data-i="${i}">&times;</button>
         </div>
       </div>
-      <input type="text" placeholder="Section title" value="${esc(s.title)}" data-field="title" data-i="${i}">
-      <textarea placeholder="Section content…" data-field="body" data-i="${i}">${esc(s.body)}</textarea>
+      <input type="text" placeholder="Section title" value="${esc(s.title)}" data-field="title" data-i="${i}" ${i !== activeIdx ? 'readonly' : ''}>
+      <textarea placeholder="Section content…" data-field="body" data-i="${i}" ${i !== activeIdx ? 'readonly' : ''}>${esc(s.body)}</textarea>
       <div class="img-drop" data-i="${i}">
         ${s.image ? `<img class="thumb" src="${s.image}"><button class="remove-img" data-i="${i}" title="Remove image"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>` : 'Drop image here or click to upload'}
         <input type="file" accept="image/*" data-i="${i}">
@@ -743,9 +747,10 @@ function renderSections() {
         ${hasLoc ? `📍 ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}` : 'Click map to set location →'}
       </div>
     `;
-    // Select on click
+    // Select on click (allow selecting when clicking inactive section's inputs)
     card.addEventListener('click', (e) => {
-      if (e.target.closest('button') || e.target.closest('.img-drop') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.target.closest('button') || e.target.closest('.img-drop')) return;
+      if (i === activeIdx && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
       activeIdx = i;
       renderSections();
       if (hasLoc && editMap) editMap.flyTo([s.lat, s.lng], mapZoom);
