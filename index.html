@@ -45,8 +45,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 #section-list { flex: 1; overflow-y: auto; padding: 8px; }
 #add-section-bar { padding: 10px; border-top: 1px solid var(--ed-border); }
 #map-edit-container { flex: 1; position: relative; }
-#map-edit { height: 100%; width: 100%; }
+#map-edit { height: 100%; width: 100%; background: var(--ed-bg); }
 .map-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--ed-hint-bg); color: var(--ed-card); padding: 6px 14px; border-radius: 20px; font-size: 12px; z-index: 800; pointer-events: none; }
+#map-mode-bar { padding: 12px; border-bottom: 1px solid var(--ed-border); }
+.map-mode-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; background: var(--ed-card); border: 2px solid var(--ed-border); border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--ed-text); transition: border-color .2s, background .2s; }
+.map-mode-toggle:hover { border-color: var(--ed-accent); background: var(--ed-bg); }
+.map-mode-toggle.active { border-color: var(--ed-accent); background: var(--ed-accent); color: var(--ed-card); }
+.map-mode-toggle input[type=checkbox] { accent-color: var(--ed-accent); width: 18px; height: 18px; }
+#custom-map-upload { margin-top: 8px; }
+#custom-map-upload .img-drop { background: var(--ed-bg); border: 2px dashed var(--ed-border); border-radius: 6px; padding: 16px; text-align: center; cursor: pointer; font-size: 13px; color: var(--ed-muted); position: relative; }
+#custom-map-upload .img-drop:hover, #custom-map-upload .img-drop.dragover { border-color: var(--ed-accent); background: rgba(0,0,0,.03); }
+#custom-map-upload .img-drop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+#custom-map-upload .custom-map-actions { display: flex; gap: 8px; padding: 4px 0; }
 
 /* Hero card */
 .hero-card { background: var(--ed-card); border: 1px solid var(--ed-accent); border-radius: 6px; padding: 12px; margin-bottom: 12px; transition: opacity .2s, filter .2s; opacity: 0.45; filter: grayscale(30%); cursor: pointer; }
@@ -196,6 +206,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 <!-- EDIT MODE -->
 <div id="edit-mode" style="display:none">
   <div id="section-panel">
+    <div id="map-mode-bar">
+      <label class="map-mode-toggle">
+        <input type="checkbox" id="custom-map-toggle">
+        <span>Use custom image as map</span>
+      </label>
+      <div id="custom-map-upload" style="display:none"></div>
+    </div>
     <div id="section-list"></div>
     <div id="add-section-bar">
       <button class="btn btn-primary" style="width:100%" id="btn-add">+ Add Section</button>
@@ -230,6 +247,8 @@ let mapZoom = 12;
 let activeIdx = -1;
 let currentView = 'landing';
 let currentStorymapId = null;
+let useCustomMap = false;
+let customMapImage = '';
 
 // ── IndexedDB Storage (replaces localStorage for much larger capacity) ──
 const DB_NAME = 'storymap-db';
@@ -366,6 +385,8 @@ async function loadStorymap(id) {
     heroTextColor = doc.heroTextColor || '';
     mapZoom = parseInt(doc.zoom || '12');
     paletteId = doc.palette || 'cabin';
+    useCustomMap = doc.useCustomMap || false;
+    customMapImage = doc.customMapImage || '';
   } else {
     sections = [];
     storyTitle = 'Untitled';
@@ -374,6 +395,8 @@ async function loadStorymap(id) {
     heroTextColor = '';
     mapZoom = 12;
     paletteId = 'cabin';
+    useCustomMap = false;
+    customMapImage = '';
   }
   if (!PALETTES[paletteId]) paletteId = 'cabin';
   currentStorymapId = id;
@@ -395,7 +418,9 @@ async function save() {
       heroImage,
       heroTextColor,
       zoom: mapZoom,
-      palette: paletteId
+      palette: paletteId,
+      useCustomMap,
+      customMapImage
     });
     await updateIndexEntry(currentStorymapId, { title: storyTitle });
   } catch (e) {
@@ -545,6 +570,9 @@ async function openStorymap(id) {
   document.getElementById('btn-preview').style.display = '';
   document.getElementById('btn-edit').style.display = 'none';
   document.getElementById('story-title').value = storyTitle;
+  document.getElementById('custom-map-toggle').checked = useCustomMap;
+  document.querySelector('.map-mode-toggle').classList.toggle('active', useCustomMap);
+  updateCustomMapUpload();
   initEditMap();
   renderPaletteBar();
   applyPaletteToPreview();
@@ -558,20 +586,138 @@ async function openStorymap(id) {
 
 function initEditMap() {
   if (editMap) editMap.remove();
-  editMap = L.map('map-edit').setView([20, 0], 2);
-  L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(editMap);
-  editMap.on('click', function(e) {
-    if (sections.length === 0 || activeIdx < 0) return;
-    const s = sections[activeIdx];
-    s.lat = e.latlng.lat;
-    s.lng = e.latlng.lng;
-    save();
-    renderSections();
-    renderEditMarkers();
-  });
+  editMap = null;
+
+  const hint = document.getElementById('map-hint');
+  if (hint) hint.textContent = useCustomMap
+    ? 'Select a section, then click the image to set its location'
+    : 'Select a section, then click the map to set its location';
+
+  if (useCustomMap && customMapImage) {
+    const img = new Image();
+    img.onload = () => {
+      const bounds = [[0, 0], [img.height, img.width]];
+      editMap = L.map('map-edit', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 3, zoomSnap: 0.25, attributionControl: false });
+      L.imageOverlay(customMapImage, bounds).addTo(editMap);
+      editMap.fitBounds(bounds, { padding: [0, 0] });
+      editMap.setMaxBounds(bounds);
+      editMap.on('click', function(e) {
+        if (sections.length === 0 || activeIdx < 0) return;
+        const s = sections[activeIdx];
+        s.lat = e.latlng.lat;
+        s.lng = e.latlng.lng;
+        save();
+        renderSections();
+        renderEditMarkers();
+      });
+      renderEditMarkers();
+    };
+    img.src = customMapImage;
+  } else if (useCustomMap && !customMapImage) {
+    editMap = L.map('map-edit', { crs: L.CRS.Simple, minZoom: -1, maxZoom: 1, attributionControl: false });
+    editMap.setView([0, 0], 0);
+  } else {
+    editMap = L.map('map-edit').setView([20, 0], 2);
+    L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(editMap);
+    editMap.on('click', function(e) {
+      if (sections.length === 0 || activeIdx < 0) return;
+      const s = sections[activeIdx];
+      s.lat = e.latlng.lat;
+      s.lng = e.latlng.lng;
+      save();
+      renderSections();
+      renderEditMarkers();
+    });
+  }
+}
+
+// ── Custom map toggle & upload ──
+document.getElementById('custom-map-toggle').addEventListener('change', (e) => {
+  const wasCustom = useCustomMap;
+  useCustomMap = e.target.checked;
+  const hasCoords = sections.some(s => s.lat != null);
+  if (hasCoords && wasCustom !== useCustomMap) {
+    if (!confirm('Switching map mode will clear all section locations (coordinates are not compatible between modes). Continue?')) {
+      useCustomMap = wasCustom;
+      e.target.checked = wasCustom;
+      return;
+    }
+    sections.forEach(s => { s.lat = null; s.lng = null; });
+  }
+  save();
+  e.target.closest('.map-mode-toggle').classList.toggle('active', useCustomMap);
+  updateCustomMapUpload();
+  initEditMap();
+  renderSections();
+  renderEditMarkers();
+});
+
+function updateCustomMapUpload() {
+  const area = document.getElementById('custom-map-upload');
+  if (useCustomMap && !customMapImage) {
+    area.style.display = 'block';
+    area.innerHTML = `
+      <div class="img-drop" id="custom-map-drop">
+        Drop your map image here or click to upload
+        <input type="file" accept="image/*" id="custom-map-file">
+      </div>`;
+    const drop = document.getElementById('custom-map-drop');
+    drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', (e) => {
+      e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) handleCustomMapFile(file);
+    });
+    document.getElementById('custom-map-file').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) handleCustomMapFile(file);
+    });
+  } else if (useCustomMap && customMapImage) {
+    area.style.display = 'block';
+    area.innerHTML = `
+      <div class="custom-map-actions">
+        <button class="btn btn-ghost" id="replace-custom-map">Replace image</button>
+        <button class="btn btn-danger" id="remove-custom-map">Remove</button>
+        <input type="file" accept="image/*" id="custom-map-file-replace" style="display:none">
+      </div>`;
+    document.getElementById('replace-custom-map').addEventListener('click', () => {
+      document.getElementById('custom-map-file-replace').click();
+    });
+    document.getElementById('custom-map-file-replace').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) handleCustomMapFile(file);
+    });
+    document.getElementById('remove-custom-map').addEventListener('click', () => {
+      customMapImage = '';
+      sections.forEach(s => { s.lat = null; s.lng = null; });
+      save();
+      updateCustomMapUpload();
+      initEditMap();
+      renderSections();
+      renderEditMarkers();
+    });
+  } else {
+    area.style.display = 'none';
+    area.innerHTML = '';
+  }
+}
+
+function handleCustomMapFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    resizeImage(e.target.result, 2400, (compressed) => {
+      customMapImage = compressed;
+      save();
+      updateCustomMapUpload();
+      initEditMap();
+      renderEditMarkers();
+    });
+  };
+  reader.readAsDataURL(file);
 }
 
 async function createNewStorymap() {
@@ -587,7 +733,9 @@ async function createNewStorymap() {
     heroImage: '',
     heroTextColor: '',
     zoom: 12,
-    palette: 'cabin'
+    palette: 'cabin',
+    useCustomMap: false,
+    customMapImage: ''
   });
   await openStorymap(id);
 }
@@ -750,7 +898,9 @@ function renderSections() {
         <input type="file" accept="image/*" data-i="${i}">
       </div>
       <div class="section-loc ${hasLoc ? 'set' : ''}">
-        ${hasLoc ? `📍 ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}` : 'Click map to set location →'}
+        ${hasLoc
+          ? (useCustomMap ? `📍 Position set (${Math.round(s.lng)}, ${Math.round(s.lat)})` : `📍 ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}`)
+          : (useCustomMap ? 'Click image to set location →' : 'Click map to set location →')}
       </div>
     `;
     // Select on click (allow selecting when clicking inactive section's inputs)
@@ -759,7 +909,7 @@ function renderSections() {
       if (i === activeIdx && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
       activeIdx = i;
       renderSections();
-      if (hasLoc && editMap) editMap.flyTo([s.lat, s.lng], mapZoom);
+      if (hasLoc && editMap) editMap.flyTo([s.lat, s.lng], useCustomMap ? editMap.getZoom() : mapZoom);
     });
     list.appendChild(card);
   });
@@ -843,7 +993,7 @@ function renderEditMarkers() {
     if (s.lat == null) return;
     const icon = L.divIcon({ className: '', html: `<div class="numbered-marker ${i === activeIdx ? 'active-marker' : ''}">${i + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
     const m = L.marker([s.lat, s.lng], { icon }).addTo(editMap);
-    m.on('click', () => { activeIdx = i; renderSections(); renderEditMarkers(); if (editMap) editMap.flyTo([s.lat, s.lng], mapZoom); });
+    m.on('click', () => { activeIdx = i; renderSections(); renderEditMarkers(); if (editMap) editMap.flyTo([s.lat, s.lng], useCustomMap ? editMap.getZoom() : mapZoom); });
     editMarkers.push(m);
   });
 }
@@ -919,67 +1069,78 @@ function enterPreview() {
   // Init preview map
   setTimeout(() => {
     if (previewMap) previewMap.remove();
-    previewMap = L.map('map-preview', { zoomControl: true, scrollWheelZoom: false }).setView([20, 0], 2);
-    L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(previewMap);
 
-    // Add markers
-    sections.forEach((s, i) => {
-      if (s.lat == null) return;
-      const icon = L.divIcon({ className: '', html: `<div class="numbered-marker" id="pm-${i}">${i + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
-      L.marker([s.lat, s.lng], { icon }).addTo(previewMap);
-    });
-
-    // Sync zoom from map controls back to mapZoom
-    previewMap.on('zoomend', () => {
-      mapZoom = previewMap.getZoom();
-      if (currentStorymapId) save();
-    });
-
-    const first = sections.find(s => s.lat != null);
-    if (first) previewMap.setView([first.lat, first.lng], mapZoom);
-
-    // Scroll-based: pick section whose center is closest to viewport center (reliable for scroll-up)
-    const scrollRoot = document.getElementById('preview-mode');
-    let lastActiveIdx = -1;
-    const updateActiveSection = () => {
-      const sectionEls = narrative.querySelectorAll('.story-section[data-idx]');
-      const rootRect = scrollRoot.getBoundingClientRect();
-      const viewportCenterY = rootRect.top + rootRect.height / 2;
-
-      let best = null;
-      let bestDist = Infinity;
-      sectionEls.forEach(el => {
-        const rect = el.getBoundingClientRect();
-        const centerY = rect.top + rect.height / 2;
-        const dist = Math.abs(centerY - viewportCenterY);
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = el;
-        }
+    function addPreviewMarkers() {
+      sections.forEach((s, i) => {
+        if (s.lat == null) return;
+        const icon = L.divIcon({ className: '', html: `<div class="numbered-marker" id="pm-${i}">${i + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+        L.marker([s.lat, s.lng], { icon }).addTo(previewMap);
       });
-      if (!best) return;
-      const idx = parseInt(best.dataset.idx);
-      if (isNaN(idx)) return;
-      if (idx === lastActiveIdx) return;
-      lastActiveIdx = idx;
-      const s = sections[idx];
+    }
 
-      narrative.querySelectorAll('.story-section').forEach(el => el.classList.add('dim'));
-      best.classList.remove('dim');
-      if (s.lat != null) previewMap.flyTo([s.lat, s.lng], mapZoom, { duration: 0.7, easeLinearity: 0.5 });
-      document.querySelectorAll('.numbered-marker').forEach(el => el.classList.remove('active-marker'));
-      const pm = document.getElementById('pm-' + idx);
-      if (pm) pm.classList.add('active-marker');
-      imgPanel.querySelectorAll('img').forEach(img => img.classList.remove('active-img'));
-      const activeImg = imgPanel.querySelector(`img[data-idx="${idx}"]`);
-      if (activeImg) activeImg.classList.add('active-img');
-    };
+    function setupScrollSync() {
+      const scrollRoot = document.getElementById('preview-mode');
+      let lastActiveIdx2 = -1;
+      const updateActiveSection = () => {
+        const sectionEls = narrative.querySelectorAll('.story-section[data-idx]');
+        const rootRect = scrollRoot.getBoundingClientRect();
+        const viewportCenterY = rootRect.top + rootRect.height / 2;
+        let best = null, bestDist = Infinity;
+        sectionEls.forEach(el => {
+          const rect = el.getBoundingClientRect();
+          const centerY = rect.top + rect.height / 2;
+          const dist = Math.abs(centerY - viewportCenterY);
+          if (dist < bestDist) { bestDist = dist; best = el; }
+        });
+        if (!best) return;
+        const idx = parseInt(best.dataset.idx);
+        if (isNaN(idx)) return;
+        if (idx === lastActiveIdx2) return;
+        lastActiveIdx2 = idx;
+        const s = sections[idx];
+        narrative.querySelectorAll('.story-section').forEach(el => el.classList.add('dim'));
+        best.classList.remove('dim');
+        if (s.lat != null) previewMap.flyTo([s.lat, s.lng], useCustomMap ? previewMap.getZoom() : mapZoom, { duration: 0.7, easeLinearity: 0.5 });
+        document.querySelectorAll('.numbered-marker').forEach(el => el.classList.remove('active-marker'));
+        const pm = document.getElementById('pm-' + idx);
+        if (pm) pm.classList.add('active-marker');
+        imgPanel.querySelectorAll('img').forEach(img => img.classList.remove('active-img'));
+        const activeImg = imgPanel.querySelector(`img[data-idx="${idx}"]`);
+        if (activeImg) activeImg.classList.add('active-img');
+      };
+      scrollRoot.addEventListener('scroll', updateActiveSection, { passive: true });
+      updateActiveSection();
+    }
 
-    scrollRoot.addEventListener('scroll', updateActiveSection, { passive: true });
-    updateActiveSection();
+    if (useCustomMap && customMapImage) {
+      const img = new Image();
+      img.onload = () => {
+        const bounds = [[0, 0], [img.height, img.width]];
+        previewMap = L.map('map-preview', { crs: L.CRS.Simple, zoomControl: true, scrollWheelZoom: false, minZoom: -3, maxZoom: 3, zoomSnap: 0.25, attributionControl: false });
+        L.imageOverlay(customMapImage, bounds).addTo(previewMap);
+        previewMap.fitBounds(bounds, { padding: [0, 0] });
+        previewMap.setMaxBounds(bounds);
+        addPreviewMarkers();
+        const first = sections.find(s => s.lat != null);
+        if (first) previewMap.setView([first.lat, first.lng], previewMap.getZoom());
+        setupScrollSync();
+      };
+      img.src = customMapImage;
+    } else {
+      previewMap = L.map('map-preview', { zoomControl: true, scrollWheelZoom: false }).setView([20, 0], 2);
+      L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(previewMap);
+      addPreviewMarkers();
+      previewMap.on('zoomend', () => {
+        mapZoom = previewMap.getZoom();
+        if (currentStorymapId) save();
+      });
+      const first = sections.find(s => s.lat != null);
+      if (first) previewMap.setView([first.lat, first.lng], mapZoom);
+      setupScrollSync();
+    }
   }, 100);
 }
 
@@ -1048,8 +1209,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="hero"><h1${heroTextColor ? ` style="color:${heroTextColor.replace(/'/g, "\\'")}"` : ''}>${esc(storyTitle).replace(/'/g, "\\'")}</h1><p${heroTextColor ? ` style="color:${heroTextColor.replace(/'/g, "\\'")}"` : ''}>${esc(heroSubtitle).replace(/'/g, "\\'")}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div></div>
 <div id="story-body"><div id="left"><div id="map"></div><div id="narrative"></div></div><div id="right"></div></div>
 </div>
+${useCustomMap && customMapImage ? `<img id="custom-map-src" src="${customMapImage.replace(/"/g, '&quot;')}" style="display:none">` : ''}
 <script>
 var sections=${secs};
+var useCustomMap=${useCustomMap};
 var sc=document.getElementById('scroll-container');
 ${heroImage ? `var h=document.getElementById('hero');h.classList.add('has-bg');h.style.backgroundImage='url(${heroImage.replace(/'/g, "\\'")})'` : ''}
 var narrative=document.getElementById('narrative');
@@ -1060,42 +1223,63 @@ sections.forEach(function(s,i){
   narrative.appendChild(d);
   if(s.image){var img=document.createElement('img');img.src=s.image;img.dataset.idx=i;img.onerror=function(){this.style.display='none'};right.appendChild(img);}
 });
-var map=L.map('map',{zoomControl:true,scrollWheelZoom:false}).setView([20,0],2);
-L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
-sections.forEach(function(s,i){
-  if(s.lat==null)return;
-  var icon=L.divIcon({className:'',html:'<div class="numbered-marker" id="pm-'+i+'">'+(i+1)+'</div>',iconSize:[26,26],iconAnchor:[13,13]});
-  L.marker([s.lat,s.lng],{icon:icon}).addTo(map);
-});
-var first=sections.find(function(s){return s.lat!=null});
-if(first)map.setView([first.lat,first.lng],${mapZoom});
-var lastActiveIdx=-1;
-var updateActiveSection=function(){
-  var sectionEls=narrative.querySelectorAll('.story-section[data-idx]');
-  var rootRect=sc.getBoundingClientRect();
-  var viewportCenterY=rootRect.top+rootRect.height/2;
-  var best=null,bestDist=Infinity;
-  sectionEls.forEach(function(el){
-    var rect=el.getBoundingClientRect();
-    var centerY=rect.top+rect.height/2;
-    var dist=Math.abs(centerY-viewportCenterY);
-    if(dist<bestDist){bestDist=dist;best=el;}
+function addMarkers(map){
+  sections.forEach(function(s,i){
+    if(s.lat==null)return;
+    var icon=L.divIcon({className:'',html:'<div class="numbered-marker" id="pm-'+i+'">'+(i+1)+'</div>',iconSize:[26,26],iconAnchor:[13,13]});
+    L.marker([s.lat,s.lng],{icon:icon}).addTo(map);
   });
-  if(!best)return;
-  var idx=parseInt(best.dataset.idx);if(isNaN(idx))return;
-  if(idx===lastActiveIdx)return;
-  lastActiveIdx=idx;
-  var s=sections[idx];
-  narrative.querySelectorAll('.story-section').forEach(function(el){el.classList.add('dim')});
-  best.classList.remove('dim');
-  if(s.lat!=null)map.flyTo([s.lat,s.lng],${mapZoom},{duration:0.7,easeLinearity:0.5});
-  document.querySelectorAll('.numbered-marker').forEach(function(el){el.classList.remove('active-marker')});
-  var pm=document.getElementById('pm-'+idx);if(pm)pm.classList.add('active-marker');
-  right.querySelectorAll('img').forEach(function(img){img.classList.remove('active-img')});
-  var ai=right.querySelector('img[data-idx="'+idx+'"]');if(ai)ai.classList.add('active-img');
-};
-sc.addEventListener('scroll',updateActiveSection,{passive:true});
-updateActiveSection();
+}
+function setupScroll(map){
+  var lastActiveIdx=-1;
+  var updateActiveSection=function(){
+    var sectionEls=narrative.querySelectorAll('.story-section[data-idx]');
+    var rootRect=sc.getBoundingClientRect();
+    var viewportCenterY=rootRect.top+rootRect.height/2;
+    var best=null,bestDist=Infinity;
+    sectionEls.forEach(function(el){
+      var rect=el.getBoundingClientRect();
+      var centerY=rect.top+rect.height/2;
+      var dist=Math.abs(centerY-viewportCenterY);
+      if(dist<bestDist){bestDist=dist;best=el;}
+    });
+    if(!best)return;
+    var idx=parseInt(best.dataset.idx);if(isNaN(idx))return;
+    if(idx===lastActiveIdx)return;
+    lastActiveIdx=idx;
+    var s=sections[idx];
+    narrative.querySelectorAll('.story-section').forEach(function(el){el.classList.add('dim')});
+    best.classList.remove('dim');
+    if(s.lat!=null)map.flyTo([s.lat,s.lng],useCustomMap?map.getZoom():${mapZoom},{duration:0.7,easeLinearity:0.5});
+    document.querySelectorAll('.numbered-marker').forEach(function(el){el.classList.remove('active-marker')});
+    var pm=document.getElementById('pm-'+idx);if(pm)pm.classList.add('active-marker');
+    right.querySelectorAll('img').forEach(function(img){img.classList.remove('active-img')});
+    var ai=right.querySelector('img[data-idx="'+idx+'"]');if(ai)ai.classList.add('active-img');
+  };
+  sc.addEventListener('scroll',updateActiveSection,{passive:true});
+  updateActiveSection();
+}
+if(useCustomMap){
+  var cmSrc=document.getElementById('custom-map-src');
+  if(cmSrc){
+    var ci=new Image();ci.onload=function(){
+      var bounds=[[0,0],[ci.height,ci.width]];
+      var map=L.map('map',{crs:L.CRS.Simple,zoomControl:true,scrollWheelZoom:false,minZoom:-3,maxZoom:3,zoomSnap:0.25,attributionControl:false});
+      L.imageOverlay(cmSrc.src,bounds).addTo(map);map.fitBounds(bounds,{padding:[0,0]});map.setMaxBounds(bounds);
+      addMarkers(map);
+      var first=sections.find(function(s){return s.lat!=null});
+      if(first)map.setView([first.lat,first.lng],map.getZoom());
+      setupScroll(map);
+    };ci.src=cmSrc.src;
+  }
+}else{
+  var map=L.map('map',{zoomControl:true,scrollWheelZoom:false}).setView([20,0],2);
+  L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+  addMarkers(map);
+  var first=sections.find(function(s){return s.lat!=null});
+  if(first)map.setView([first.lat,first.lng],${mapZoom});
+  setupScroll(map);
+}
 <\/script>
 </body>
 </html>`;
