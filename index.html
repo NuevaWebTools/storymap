@@ -141,7 +141,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 #landing-page { min-height: 100vh; background: var(--ed-bg); padding: 40px; overflow-y: auto; display: flex; flex-direction: column; }
 #landing-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
 #landing-header h1 { font-size: 28px; font-weight: 700; color: var(--ed-accent); }
-#storymap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+#storymap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; align-content: start; flex: 1; }
 .storymap-card { background: var(--ed-card); border: 1px solid var(--ed-border); border-radius: 8px; overflow: hidden; transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
 .storymap-card:hover { border-color: var(--ed-accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
 .storymap-card-thumb { width: 100%; height: 160px; background: var(--ed-panel); display: flex; align-items: center; justify-content: center; overflow: hidden; }
