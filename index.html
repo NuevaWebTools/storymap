@@ -20,15 +20,35 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 /* ── Toolbar ── */
 #toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--ed-panel); border-bottom: 1px solid var(--ed-border); min-height: 48px; z-index: 1000; flex-wrap: wrap; }
 #toolbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
-#toolbar h1 { font-size: 16px; font-weight: 600; color: var(--ed-accent); margin-right: 8px; }
-#palette-bar { display: flex; align-items: center; gap: 6px; margin-right: 8px; }
-#palette-bar .palette-label { font-size: 12px; color: var(--ed-muted); margin-right: 4px; }
-#palette-buttons { display: flex; gap: 4px; }
-.palette-btn { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--ed-border); border-radius: 6px; background: var(--ed-card); color: var(--ed-muted); font-size: 12px; cursor: pointer; transition: border-color .2s, background .2s; }
-.palette-btn:hover { border-color: var(--ed-accent); background: var(--ed-bg); }
-.palette-btn.active { border-color: var(--ed-accent); background: var(--ed-panel); color: var(--ed-text); font-weight: 600; }
-.palette-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
-#toolbar input[type=text] { background: var(--ed-card); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 4px 10px; border-radius: 4px; font-size: 14px; width: 220px; }
+/* Design drawer */
+#design-drawer { position: absolute; top: 0; right: 0; width: 300px; height: 100%; background: var(--ed-panel); border-left: 1px solid var(--ed-border); z-index: 900; transform: translateX(100%); transition: transform .25s ease; overflow-y: auto; display: flex; flex-direction: column; }
+#design-drawer.open { transform: translateX(0); }
+.drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--ed-border); }
+.drawer-header h2 { font-size: 15px; font-weight: 600; color: var(--ed-text); }
+.drawer-close { background: transparent; border: 1px solid var(--ed-border); color: var(--ed-muted); width: 28px; height: 28px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: background .2s, color .2s; }
+.drawer-close:hover { background: var(--ed-bg); color: var(--ed-text); }
+.drawer-body { padding: 16px; flex: 1; }
+.drawer-section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ed-muted); margin-bottom: 10px; font-weight: 600; }
+#palette-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.palette-btn { display: flex; align-items: center; justify-content: center; padding: 14px 10px; border: 2px solid var(--ed-border); border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+.palette-btn:hover { border-color: var(--ed-accent); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.palette-btn.active { border-color: var(--ed-accent); box-shadow: 0 0 0 1px var(--ed-accent); }
+#layout-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.layout-btn { display: flex; flex-direction: column; align-items: stretch; padding: 0; border: 2px solid var(--ed-border); border-radius: 8px; background: var(--ed-card); cursor: pointer; transition: border-color .2s, box-shadow .2s; overflow: hidden; }
+.layout-btn:hover { border-color: var(--ed-accent); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.layout-btn.active { border-color: var(--ed-accent); box-shadow: 0 0 0 1px var(--ed-accent); }
+.layout-btn .layout-preview { height: 60px; display: flex; gap: 2px; padding: 6px; background: var(--ed-bg); }
+.layout-btn .lp-block { border-radius: 3px; }
+.layout-btn .layout-label { font-size: 11px; font-weight: 600; color: var(--ed-text); padding: 6px 8px; text-align: center; }
+#cover-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cover-btn { display: flex; flex-direction: column; align-items: stretch; padding: 0; border: 2px solid var(--ed-border); border-radius: 8px; background: var(--ed-card); cursor: pointer; transition: border-color .2s, box-shadow .2s; overflow: hidden; }
+.cover-btn:hover { border-color: var(--ed-accent); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.cover-btn.active { border-color: var(--ed-accent); box-shadow: 0 0 0 1px var(--ed-accent); }
+.cover-btn .cover-preview { height: 56px; position: relative; background: var(--ed-bg); overflow: hidden; }
+.cover-btn .cover-label { font-size: 11px; font-weight: 600; color: var(--ed-text); padding: 6px 8px; text-align: center; }
+#toolbar #story-title { background: var(--ed-card); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 4px 10px; border-radius: 4px; font-size: 16px; font-weight: 600; flex: 1; min-width: 120px; max-width: 400px; cursor: text; }
+#toolbar #story-title:focus { border-color: var(--ed-accent); outline: none; }
+#toolbar #story-title:focus::placeholder { color: transparent; }
 .btn { padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background .2s; }
 .btn-primary { background: var(--ed-accent); color: var(--ed-card); }
 .btn-primary:hover { background: var(--ed-accent-hover); }
@@ -44,7 +64,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 #section-panel { width: 55%; min-width: 400px; overflow-y: auto; background: var(--ed-panel); border-right: 1px solid var(--ed-border); display: flex; flex-direction: column; }
 #section-list { flex: 1; overflow-y: auto; padding: 8px; }
 #add-section-bar { padding: 10px; border-top: 1px solid var(--ed-border); }
-#map-edit-container { flex: 1; position: relative; }
+#map-edit-container { flex: 1; position: relative; overflow: hidden; }
 #map-edit { height: 100%; width: 100%; background: var(--ed-bg); }
 .map-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--ed-hint-bg); color: var(--ed-card); padding: 6px 14px; border-radius: 20px; font-size: 12px; z-index: 800; pointer-events: none; }
 #map-mode-bar { padding: 12px; border-bottom: 1px solid var(--ed-border); }
@@ -59,12 +79,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 #custom-map-upload .custom-map-actions { display: flex; gap: 8px; padding: 4px 0; }
 
 /* Hero card */
-.hero-card { background: var(--ed-card); border: 1px solid var(--ed-accent); border-radius: 6px; padding: 12px; margin-bottom: 12px; transition: opacity .2s, filter .2s; opacity: 0.45; filter: grayscale(30%); cursor: pointer; }
+.hero-card { background: var(--ed-card); border: 1px solid var(--ed-border); border-top: 3px solid var(--ed-accent); border-radius: 6px; padding: 14px; margin-bottom: 14px; transition: opacity .2s, filter .2s; opacity: 0.45; filter: grayscale(30%); cursor: pointer; }
 .hero-card.active { opacity: 1; filter: none; }
-.hero-card .hero-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--ed-accent); margin-bottom: 8px; font-weight: 700; }
+.hero-card .hero-label { display: flex; align-items: center; gap: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ed-accent); margin-bottom: 10px; font-weight: 700; }
+.hero-card .hero-label svg { width: 14px; height: 14px; fill: var(--ed-accent); flex-shrink: 0; }
 .hero-card input, .hero-card textarea { width: 100%; background: var(--ed-bg); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
 .hero-card textarea { resize: vertical; min-height: 40px; }
-.hero-card input::placeholder, .hero-card textarea::placeholder { color: var(--ed-placeholder); }
+.hero-card input::placeholder, .hero-card textarea::placeholder { color: var(--ed-placeholder); font-style: italic; }
+.hero-card input:focus::placeholder, .hero-card textarea:focus::placeholder { color: transparent; }
 .hero-card input[readonly], .hero-card textarea[readonly] { cursor: default; }
 .hero-color-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .hero-color-row label { font-size: 12px; color: var(--ed-muted); }
@@ -81,6 +103,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 .section-card input, .section-card textarea { width: 100%; background: var(--ed-bg); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
 .section-card textarea { resize: vertical; min-height: 60px; }
 .section-card input::placeholder, .section-card textarea::placeholder { color: var(--ed-placeholder); }
+.section-card input:focus::placeholder, .section-card textarea:focus::placeholder { color: transparent; }
 .section-card input[readonly], .section-card textarea[readonly] { cursor: default; }
 .img-drop { border: 2px dashed var(--ed-border); border-radius: 6px; padding: 12px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 6px; font-size: 12px; color: var(--ed-muted); position: relative; }
 .img-drop:hover, .img-drop.dragover { border-color: var(--ed-accent); background: rgba(0,0,0,.03); }
@@ -90,8 +113,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 .img-drop .remove-img { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.75); color: #fff; border: 1px solid rgba(255,255,255,.4); border-radius: 4px; width: 28px; height: 28px; padding: 0; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: background .2s; }
 .img-drop .remove-img:hover { background: var(--ed-danger); border-color: var(--ed-danger); }
 .img-drop .remove-img svg { width: 14px; height: 14px; fill: currentColor; }
-.section-loc { font-size: 11px; color: var(--ed-muted); margin-top: 4px; }
-.section-loc.set { color: var(--ed-success); }
+.section-loc { font-size: 12px; color: var(--ed-accent); margin-top: 6px; font-weight: 600; padding: 4px 8px; background: color-mix(in srgb, var(--ed-accent) 12%, transparent); border-radius: 4px; text-align: center; }
+.section-loc.set { color: var(--ed-success); font-weight: 400; background: transparent; text-align: left; font-size: 11px; padding: 0; margin-top: 4px; }
 .section-card-actions { display: flex; gap: 6px; }
 .section-card-actions .btn { padding: 3px 8px; font-size: 11px; }
 
@@ -112,9 +135,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 #preview-mode #hero-fullpage.has-bg::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,.55); }
 #preview-mode #hero-fullpage h1 { position: relative; z-index: 1; font-size: 48px; color: var(--palette-accent); text-shadow: 0 2px 12px rgba(0,0,0,.7); margin-bottom: 16px; }
 #preview-mode #hero-fullpage p { position: relative; z-index: 1; font-size: 20px; color: var(--palette-text-muted); text-shadow: 0 1px 6px rgba(0,0,0,.6); max-width: 600px; line-height: 1.6; }
-#preview-mode #hero-fullpage .scroll-hint { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1; font-size: 13px; color: #888; letter-spacing: 1px; }
+#preview-mode #hero-fullpage .scroll-hint { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1; font-size: 13px; color: #888; letter-spacing: 1px; text-align: center; }
 #preview-mode #hero-fullpage .scroll-hint span { display: block; margin-top: 6px; animation: bounce 2s infinite; font-size: 20px; }
 @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
+
+/* ── Cover: Side (editorial — text top-left, image below) ── */
+#preview-mode #hero-fullpage.hero-side { align-items: flex-start; justify-content: flex-start; text-align: left; padding: 60px 60px 0; background-size: contain; background-position: bottom center; background-repeat: no-repeat; }
+#preview-mode #hero-fullpage.hero-side.has-bg::before { display: none; }
+#preview-mode #hero-fullpage.hero-side h1 { font-size: 52px; font-weight: 900; color: var(--palette-text); text-shadow: none; max-width: 700px; }
+#preview-mode #hero-fullpage.hero-side p { color: var(--palette-text-muted); text-shadow: none; font-size: 18px; max-width: 600px; }
+#preview-mode #hero-fullpage.hero-side .scroll-hint { color: var(--palette-text-muted); }
+
+/* ── Cover: Bold (full image, text bottom-left, minimal overlay) ── */
+#preview-mode #hero-fullpage.hero-bold { align-items: flex-start; justify-content: flex-end; text-align: left; padding: 0 60px 60px; }
+#preview-mode #hero-fullpage.hero-bold.has-bg::before { background: linear-gradient(to top, rgba(0,0,0,.7) 0%, rgba(0,0,0,.2) 40%, transparent 70%); }
+#preview-mode #hero-fullpage.hero-bold h1 { font-size: 56px; font-weight: 900; color: #fff; text-shadow: 0 2px 20px rgba(0,0,0,.8); max-width: 700px; }
+#preview-mode #hero-fullpage.hero-bold p { color: rgba(255,255,255,.85); text-shadow: 0 1px 8px rgba(0,0,0,.6); font-size: 18px; max-width: 600px; }
+#preview-mode #hero-fullpage.hero-bold .scroll-hint { color: rgba(255,255,255,.6); }
 #preview-mode #story-body { display: flex; align-items: flex-start; min-height: calc(100vh - 48px); background: var(--palette-bg); }
 #preview-mode #preview-left { width: 35%; background: var(--palette-bg); padding: 16px; }
 #preview-mode #map-preview { position: sticky; top: 16px; width: 100%; height: 35vh; border-bottom: 1px solid var(--palette-border); z-index: 10; border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
@@ -133,6 +170,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 #preview-mode::-webkit-scrollbar { width: 6px; }
 #preview-mode::-webkit-scrollbar-track { background: var(--palette-bg); }
 #preview-mode::-webkit-scrollbar-thumb { background: var(--palette-secondary); border-radius: 3px; }
+
+/* ── Layout: Reverse (image left, map+text right) ── */
+#preview-mode.layout-reverse #story-body { flex-direction: row-reverse; }
+#preview-mode.layout-reverse #preview-left { width: 35%; }
+#preview-mode.layout-reverse #preview-right { width: 65%; }
+
+/* ── Layout: Immersive (full-screen map, floating narrative) ── */
+#preview-mode.layout-immersive #story-body { display: block; position: relative; min-height: auto; }
+#preview-mode.layout-immersive #preview-left { width: 100%; padding: 0; position: relative; z-index: 2; pointer-events: none; }
+#preview-mode.layout-immersive #map-preview { position: sticky; top: 0; left: 0; width: 100%; height: calc(100vh - 48px); z-index: 1; border-radius: 0; margin: 0; border: none; pointer-events: auto; }
+#preview-mode.layout-immersive #narrative { position: relative; z-index: 2; max-width: 420px; margin-left: 40px; margin-top: calc(-100vh + 48px); padding-top: 40vh; padding-bottom: 40vh; }
+#preview-mode.layout-immersive .story-section { background: var(--palette-bg); border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.25); padding: 30px; margin-bottom: 60vh; min-height: auto; pointer-events: auto; }
+#preview-mode.layout-immersive .story-section.dim { opacity: 0.7; }
+#preview-mode.layout-immersive .story-section .section-inline-img { width: 100%; border-radius: 6px; margin-top: 12px; }
+#preview-mode.layout-immersive #preview-right { display: none; }
 
 /* Scrollbar (edit mode) */
 ::-webkit-scrollbar { width: 6px; }
@@ -190,13 +242,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
   <button id="btn-back" title="Back to all stories">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3L4 9v12h6v-7h4v7h6V9L12 3z"/></svg>
     </button>
-  <h1>StoryMap Builder</h1>
-  <div id="palette-bar">
-    <span class="palette-label">Palette:</span>
-    <div id="palette-buttons"></div>
-  </div>
+  <input type="text" id="story-title" placeholder="Story title…" value="My Story">
   <div id="toolbar-right">
-    <input type="text" id="story-title" placeholder="Story title…" value="My Story">
+    <button class="btn btn-ghost" id="btn-design">Design</button>
     <button class="btn btn-primary" id="btn-preview">Preview</button>
     <button class="btn btn-secondary" id="btn-edit" style="display:none">Edit</button>
     <button class="btn btn-ghost" id="btn-export">Export HTML</button>
@@ -221,6 +269,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
   <div id="map-edit-container">
     <div id="map-edit"></div>
     <div class="map-hint" id="map-hint">Select a section, then click the map to set its location</div>
+    <div id="design-drawer">
+      <div class="drawer-header">
+        <h2>Design</h2>
+        <button class="drawer-close" id="drawer-close" title="Close">&times;</button>
+      </div>
+      <div class="drawer-body">
+        <div class="drawer-section-label">Cover</div>
+        <div id="cover-buttons"></div>
+        <div class="drawer-section-label" style="margin-top:20px">Layout</div>
+        <div id="layout-buttons"></div>
+        <div class="drawer-section-label" style="margin-top:20px">Theme</div>
+        <div id="palette-buttons"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -239,16 +301,31 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 <script>
 // ── State ──
 let sections = [];
-let storyTitle = 'My Story';
-let heroSubtitle = 'Scroll down to explore';
+let storyTitle = '';
+let heroSubtitle = '';
 let heroImage = '';
 let heroTextColor = '';
-let mapZoom = 12;
+let mapZoom = 8;
+let customMapZoom = 2;
 let activeIdx = -1;
 let currentView = 'landing';
 let currentStorymapId = null;
 let useCustomMap = false;
 let customMapImage = '';
+let layoutId = 'classic';
+let coverId = 'center';
+
+const LAYOUTS = {
+  classic:  { name: 'Classic',   desc: 'Map & text left, image right' },
+  reverse:  { name: 'Reverse',   desc: 'Image left, map & text right' },
+  immersive:{ name: 'Immersive', desc: 'Full-width map, floating text' },
+};
+
+const COVERS = {
+  center: { name: 'Center',    desc: 'Centered text over full image' },
+  side:   { name: 'Editorial', desc: 'Text top-left, image below' },
+  bold:   { name: 'Bold',      desc: 'Full image, text bottom-left' }
+};
 
 // ── IndexedDB Storage (replaces localStorage for much larger capacity) ──
 const DB_NAME = 'storymap-db';
@@ -325,6 +402,11 @@ const PALETTES = {
     name: 'Dusk', swatch: ['#5B6DAA','#F4F5F7','#8892B0'],
     accent: '#5B6DAA', bg: '#f4f5f7', bgDark: '#e8eaf0', bgSecondary: '#d4d8e4', border: '#c4c8d4', secondary: '#8892B0', text: '#1A1D2A', textMuted: '#636980', controlText: '#1A1D2A',
     ed: { bg:'#F4F5F7', panel:'#E8EAF0', card:'#FAFBFD', border:'#C4C8D4', accent:'#5B6DAA', accentHover:'#4A5A90', secondary:'#8892B0', secondaryHover:'#76809E', text:'#1A1D2A', muted:'#636980', placeholder:'#A0A4B4', danger:'#B04848', dangerHover:'#943C3C', success:'#5B8A6E', hintBg:'rgba(20,22,34,.8)' }
+  },
+  ember: {
+    name: 'Ember', swatch: ['#C85A3A','#1A1210','#D4916A'],
+    accent: '#C85A3A', bg: '#1A1210', bgDark: '#140E0C', bgSecondary: '#2E1E18', border: '#4A2E22', secondary: '#D4916A', text: '#F0E0D4', textMuted: '#B89882', controlText: '#F0E0D4',
+    ed: { bg:'#1A1210', panel:'#241816', card:'#2E1E18', border:'#4A2E22', accent:'#C85A3A', accentHover:'#A84A2E', secondary:'#D4916A', secondaryHover:'#C07E56', text:'#F0E0D4', muted:'#B89882', placeholder:'#6A4E3E', danger:'#D04040', dangerHover:'#B03030', success:'#7BAA6E', hintBg:'rgba(0,0,0,.7)' }
   }
 };
 let paletteId = 'cabin';
@@ -379,26 +461,34 @@ async function loadStorymap(id) {
   const doc = await dbGet('storymaps', id);
   if (doc) {
     sections = doc.sections || [];
-    storyTitle = doc.title || 'Untitled';
-    heroSubtitle = doc.heroSubtitle || 'Scroll down to explore';
+    storyTitle = doc.title || '';
+    heroSubtitle = doc.heroSubtitle || '';
     heroImage = doc.heroImage || '';
     heroTextColor = doc.heroTextColor || '';
-    mapZoom = parseInt(doc.zoom || '12');
+    mapZoom = parseInt(doc.zoom || '8');
+    customMapZoom = doc.customZoom != null ? doc.customZoom : 2;
     paletteId = doc.palette || 'cabin';
     useCustomMap = doc.useCustomMap || false;
     customMapImage = doc.customMapImage || '';
+    layoutId = doc.layout || 'classic';
+    coverId = doc.cover || 'center';
   } else {
     sections = [];
-    storyTitle = 'Untitled';
-    heroSubtitle = 'Scroll down to explore';
+    storyTitle = '';
+    heroSubtitle = '';
     heroImage = '';
     heroTextColor = '';
-    mapZoom = 12;
+    mapZoom = 8;
+    customMapZoom = 2;
     paletteId = 'cabin';
     useCustomMap = false;
     customMapImage = '';
+    layoutId = 'classic';
+    coverId = 'center';
   }
   if (!PALETTES[paletteId]) paletteId = 'cabin';
+  if (!LAYOUTS[layoutId]) layoutId = 'classic';
+  if (!COVERS[coverId]) coverId = 'center';
   currentStorymapId = id;
 }
 
@@ -418,9 +508,12 @@ async function save() {
       heroImage,
       heroTextColor,
       zoom: mapZoom,
+      customZoom: customMapZoom,
       palette: paletteId,
       useCustomMap,
-      customMapImage
+      customMapImage,
+      layout: layoutId,
+      cover: coverId
     });
     await updateIndexEntry(currentStorymapId, { title: storyTitle });
   } catch (e) {
@@ -442,11 +535,11 @@ async function migrateIfNeeded() {
       const doc = {
         id: entry.id,
         sections: JSON.parse(localStorage.getItem(p + 'sections') || '[]'),
-        title: localStorage.getItem(p + 'title') || 'Untitled',
-        heroSubtitle: localStorage.getItem(p + 'hero-subtitle') || 'Scroll down to explore',
+        title: localStorage.getItem(p + 'title') || '',
+        heroSubtitle: localStorage.getItem(p + 'hero-subtitle') || '',
         heroImage: localStorage.getItem(p + 'hero-image') || '',
         heroTextColor: localStorage.getItem(p + 'hero-text-color') || '',
-        zoom: parseInt(localStorage.getItem(p + 'zoom') || '12'),
+        zoom: parseInt(localStorage.getItem(p + 'zoom') || '8'),
         palette: localStorage.getItem(p + 'palette') || 'cabin'
       };
       await dbPut('storymaps', doc);
@@ -464,11 +557,11 @@ async function migrateIfNeeded() {
     const doc = {
       id,
       sections: JSON.parse(oldSections),
-      title: localStorage.getItem('storymap-title') || 'My Story',
-      heroSubtitle: localStorage.getItem('storymap-hero-subtitle') || 'Scroll down to explore',
+      title: localStorage.getItem('storymap-title') || '',
+      heroSubtitle: localStorage.getItem('storymap-hero-subtitle') || '',
       heroImage: localStorage.getItem('storymap-hero-image') || '',
       heroTextColor: localStorage.getItem('storymap-hero-text-color') || '',
-      zoom: parseInt(localStorage.getItem('storymap-zoom') || '12'),
+      zoom: parseInt(localStorage.getItem('storymap-zoom') || '8'),
       palette: localStorage.getItem('storymap-palette') || 'cabin'
     };
     await dbPut('storymaps', doc);
@@ -575,6 +668,8 @@ async function openStorymap(id) {
   updateCustomMapUpload();
   initEditMap();
   renderPaletteBar();
+  renderLayoutBar();
+  renderCoverBar();
   applyPaletteToPreview();
   if (sections.length === 0) {
     sections.push({ title: 'Welcome', body: 'Click the map to set this section\'s location, then add more sections to build your story.', image: '', lat: null, lng: null, zoom: 10 });
@@ -597,7 +692,7 @@ function initEditMap() {
     const img = new Image();
     img.onload = () => {
       const bounds = [[0, 0], [img.height, img.width]];
-      editMap = L.map('map-edit', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 3, zoomSnap: 0.25, attributionControl: false });
+      editMap = L.map('map-edit', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 5, zoomSnap: 0.25, attributionControl: false });
       L.imageOverlay(customMapImage, bounds).addTo(editMap);
       editMap.fitBounds(bounds, { padding: [0, 0] });
       editMap.setMaxBounds(bounds);
@@ -609,6 +704,10 @@ function initEditMap() {
         save();
         renderSections();
         renderEditMarkers();
+      });
+      editMap.on('zoomend', () => {
+        customMapZoom = editMap.getZoom();
+        save();
       });
       renderEditMarkers();
     };
@@ -630,6 +729,10 @@ function initEditMap() {
       save();
       renderSections();
       renderEditMarkers();
+    });
+    editMap.on('zoomend', () => {
+      mapZoom = editMap.getZoom();
+      save();
     });
   }
 }
@@ -727,12 +830,13 @@ async function createNewStorymap() {
   await saveIndex(index);
   await dbPut('storymaps', {
     id,
-    sections: [{ title: 'Welcome', body: 'Click the map to set this section\'s location, then add more sections to build your story.', image: '', lat: null, lng: null, zoom: 10 }],
-    title: 'Untitled Story',
-    heroSubtitle: 'Scroll down to explore',
+    sections: [{ title: '', body: '', image: '', lat: null, lng: null, zoom: 10 }],
+    title: '',
+    heroSubtitle: '',
     heroImage: '',
     heroTextColor: '',
-    zoom: 12,
+    zoom: 8,
+    customZoom: 2,
     palette: 'cabin',
     useCustomMap: false,
     customMapImage: ''
@@ -746,13 +850,89 @@ async function returnToLanding() {
   await showLanding();
 }
 
+// ── Cover selector ──
+function renderCoverBar() {
+  const container = document.getElementById('cover-buttons');
+  const previews = {
+    center: `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:var(--ed-muted);opacity:.15;position:absolute;inset:0"></div>
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;z-index:1">
+        <div style="width:50%;height:4px;background:var(--ed-accent);border-radius:2px;margin-bottom:3px"></div>
+        <div style="width:30%;height:3px;background:var(--ed-muted);border-radius:2px;opacity:.5"></div>
+      </div>`,
+    side: `<div style="display:flex;flex-direction:column;height:100%;padding:6px 8px">
+        <div style="width:55%;height:4px;background:var(--ed-text);border-radius:2px;margin-bottom:3px"></div>
+        <div style="width:40%;height:3px;background:var(--ed-muted);border-radius:2px;margin-bottom:auto;opacity:.5"></div>
+        <div style="width:100%;flex:1;background:var(--ed-muted);border-radius:3px;opacity:.15;min-height:16px"></div>
+      </div>`,
+    bold: `<div style="position:absolute;inset:0;background:var(--ed-muted);opacity:.15"></div>
+      <div style="position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(to top,rgba(0,0,0,.3),transparent)"></div>
+      <div style="position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;height:100%;padding:0 8px 5px;z-index:1">
+        <div style="width:55%;height:4px;background:#fff;border-radius:2px;margin-bottom:2px"></div>
+        <div style="width:35%;height:3px;background:rgba(255,255,255,.6);border-radius:2px"></div>
+      </div>`
+  };
+  container.innerHTML = Object.entries(COVERS).map(([id, c]) =>
+    `<button class="cover-btn ${id === coverId ? 'active' : ''}" data-cover="${id}" title="${c.desc}">
+      <div class="cover-preview">${previews[id]}</div>
+      <div class="cover-label">${c.name}</div>
+    </button>`
+  ).join('');
+  container.querySelectorAll('.cover-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      coverId = btn.dataset.cover;
+      save();
+      renderCoverBar();
+    });
+  });
+}
+
+// ── Layout selector ──
+function renderLayoutBar() {
+  const container = document.getElementById('layout-buttons');
+  const previews = {
+    classic: `<div style="display:flex;gap:2px;flex:1">
+      <div style="display:flex;flex-direction:column;gap:2px;width:35%">
+        <div class="lp-block" style="flex:2;background:var(--ed-success);opacity:.6"></div>
+        <div class="lp-block" style="flex:3;background:var(--ed-muted);opacity:.3"></div>
+      </div>
+      <div class="lp-block" style="flex:1;background:var(--ed-accent);opacity:.3"></div>
+    </div>`,
+    reverse: `<div style="display:flex;gap:2px;flex:1">
+      <div class="lp-block" style="flex:1;background:var(--ed-accent);opacity:.3"></div>
+      <div style="display:flex;flex-direction:column;gap:2px;width:35%">
+        <div class="lp-block" style="flex:2;background:var(--ed-success);opacity:.6"></div>
+        <div class="lp-block" style="flex:3;background:var(--ed-muted);opacity:.3"></div>
+      </div>
+    </div>`,
+    immersive: `<div style="position:relative;flex:1">
+      <div class="lp-block" style="position:absolute;inset:0;background:var(--ed-success);opacity:.4;border-radius:3px"></div>
+      <div style="position:absolute;top:8px;left:6px;width:40%;bottom:8px;display:flex;flex-direction:column;gap:3px">
+        <div class="lp-block" style="flex:1;background:var(--ed-card);border:1px solid var(--ed-border);border-radius:2px"></div>
+        <div class="lp-block" style="flex:1;background:var(--ed-card);border:1px solid var(--ed-border);border-radius:2px"></div>
+      </div>
+    </div>`,
+  };
+  container.innerHTML = Object.entries(LAYOUTS).map(([id, l]) =>
+    `<button class="layout-btn ${id === layoutId ? 'active' : ''}" data-layout="${id}" title="${l.desc}">
+      <div class="layout-preview">${previews[id]}</div>
+      <div class="layout-label">${l.name}</div>
+    </button>`
+  ).join('');
+  container.querySelectorAll('.layout-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      layoutId = btn.dataset.layout;
+      save();
+      renderLayoutBar();
+    });
+  });
+}
+
 // ── Palette ──
 function renderPaletteBar() {
   const container = document.getElementById('palette-buttons');
   container.innerHTML = Object.entries(PALETTES).map(([id, p]) =>
-    `<button class="palette-btn ${id === paletteId ? 'active' : ''}" data-palette="${id}" title="${p.name}">
-      <span class="palette-swatch" style="background:linear-gradient(135deg,${p.swatch[0]} 0%,${p.swatch[1]} 50%,${p.swatch[2]} 100%)"></span>
-      <span class="palette-name">${p.name}</span>
+    `<button class="palette-btn ${id === paletteId ? 'active' : ''}" data-palette="${id}" title="${p.name}" style="background:${p.bg};color:${p.text};border-color:${id === paletteId ? p.accent : p.border}">
+      ${p.name}
     </button>`
   ).join('');
   container.querySelectorAll('.palette-btn').forEach(btn => {
@@ -820,9 +1000,9 @@ function renderSections() {
   hero.className = 'hero-card' + (activeIdx === -1 ? ' active' : '');
   const heroActive = activeIdx === -1;
   hero.innerHTML = `
-    <div class="hero-label">Hero / Intro Section</div>
-    <input type="text" id="hero-title-input" placeholder="Story title" value="${esc(storyTitle)}" ${!heroActive ? 'readonly' : ''}>
-    <textarea id="hero-subtitle-input" placeholder="Subtitle or intro text" ${!heroActive ? 'readonly' : ''}>${esc(heroSubtitle)}</textarea>
+    <div class="hero-label"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM5 15l3.5-4.5 2.5 3 3.5-4.5L19 15H5z"/></svg>Cover</div>
+    <input type="text" id="hero-title-input" placeholder="Title" value="${esc(storyTitle)}" ${!heroActive ? 'readonly' : ''}>
+    <textarea id="hero-subtitle-input" placeholder="Subheading" ${!heroActive ? 'readonly' : ''}>${esc(heroSubtitle)}</textarea>
     <div class="hero-color-row">
       <label for="hero-text-color">Text color:</label>
       <input type="color" id="hero-text-color" value="${heroTextColor || '#ffffff'}" title="Hero text color" ${!heroActive ? 'disabled' : ''}>
@@ -891,8 +1071,8 @@ function renderSections() {
           <button class="btn btn-danger del-btn" data-i="${i}">&times;</button>
         </div>
       </div>
-      <input type="text" placeholder="Section title" value="${esc(s.title)}" data-field="title" data-i="${i}" ${i !== activeIdx ? 'readonly' : ''}>
-      <textarea placeholder="Section content…" data-field="body" data-i="${i}" ${i !== activeIdx ? 'readonly' : ''}>${esc(s.body)}</textarea>
+      <input type="text" placeholder="Section Title" value="${esc(s.title)}" data-field="title" data-i="${i}" ${i !== activeIdx ? 'readonly' : ''}>
+      <textarea placeholder="Section Information" data-field="body" data-i="${i}" ${i !== activeIdx ? 'readonly' : ''}>${esc(s.body)}</textarea>
       <div class="img-drop" data-i="${i}">
         ${s.image ? `<img class="thumb" src="${s.image}"><button class="remove-img" data-i="${i}" title="Remove image"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>` : 'Drop image here or click to upload'}
         <input type="file" accept="image/*" data-i="${i}">
@@ -909,7 +1089,7 @@ function renderSections() {
       if (i === activeIdx && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
       activeIdx = i;
       renderSections();
-      if (hasLoc && editMap) editMap.flyTo([s.lat, s.lng], useCustomMap ? editMap.getZoom() : mapZoom);
+      if (hasLoc && editMap) editMap.flyTo([s.lat, s.lng], useCustomMap ? customMapZoom : mapZoom);
     });
     list.appendChild(card);
   });
@@ -993,7 +1173,7 @@ function renderEditMarkers() {
     if (s.lat == null) return;
     const icon = L.divIcon({ className: '', html: `<div class="numbered-marker ${i === activeIdx ? 'active-marker' : ''}">${i + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
     const m = L.marker([s.lat, s.lng], { icon }).addTo(editMap);
-    m.on('click', () => { activeIdx = i; renderSections(); renderEditMarkers(); if (editMap) editMap.flyTo([s.lat, s.lng], useCustomMap ? editMap.getZoom() : mapZoom); });
+    m.on('click', () => { activeIdx = i; renderSections(); renderEditMarkers(); if (editMap) editMap.flyTo([s.lat, s.lng], useCustomMap ? customMapZoom : mapZoom); });
     editMarkers.push(m);
   });
 }
@@ -1020,10 +1200,15 @@ document.getElementById('btn-edit').addEventListener('click', () => enterEdit())
 function enterPreview() {
   mode = 'preview';
   document.getElementById('edit-mode').style.display = 'none';
-  document.getElementById('preview-mode').style.display = 'block';
+  const previewEl = document.getElementById('preview-mode');
+  previewEl.style.display = 'block';
+  // Apply layout class
+  previewEl.className = 'layout-' + layoutId;
   applyPaletteToPreview();
   document.getElementById('btn-preview').style.display = 'none';
   document.getElementById('btn-edit').style.display = '';
+  document.getElementById('btn-design').style.display = 'none';
+  document.getElementById('design-drawer').classList.remove('open');
 
   // Build hero fullpage
   const heroEl = document.getElementById('hero-fullpage');
@@ -1031,11 +1216,15 @@ function enterPreview() {
   heroEl.style.backgroundImage = '';
   const heroTitleStyle = heroTextColor ? ` style="color:${esc(heroTextColor)}"` : '';
   const heroSubtitleStyle = heroTextColor ? ` style="color:${esc(heroTextColor)}"` : '';
+
   heroEl.innerHTML = `<h1${heroTitleStyle}>${esc(storyTitle)}</h1><p${heroSubtitleStyle}>${esc(heroSubtitle)}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div>`;
   if (heroImage) {
     heroEl.classList.add('has-bg');
     heroEl.style.backgroundImage = `url(${heroImage})`;
   }
+  // Apply cover style class
+  const coverClassMap = { center: '', side: 'hero-side', bold: 'hero-bold' };
+  if (coverClassMap[coverId]) heroEl.classList.add(coverClassMap[coverId]);
 
   // Build narrative
   const narrative = document.getElementById('narrative');
@@ -1045,19 +1234,26 @@ function enterPreview() {
   const imgPanel = document.getElementById('preview-right');
   imgPanel.innerHTML = '';
 
+  const useInlineImages = (layoutId === 'immersive');
+
   sections.forEach((s, i) => {
     // Narrative text
     const div = document.createElement('div');
     div.className = 'story-section';
     div.dataset.idx = i;
+    let imgHtml = '';
+    if (useInlineImages && s.image) {
+      imgHtml = `<img class="section-inline-img" src="${s.image}" onerror="this.style.display='none'">`;
+    }
     div.innerHTML = `
       <h2>${i + 1}. ${esc(s.title) || 'Untitled'}</h2>
       <p>${(s.body || '').replace(/\n/g, '<br>')}</p>
+      ${imgHtml}
     `;
     narrative.appendChild(div);
 
-    // Image in right panel
-    if (s.image) {
+    // Image in right panel (only for classic/reverse layouts)
+    if (!useInlineImages && s.image) {
       const img = document.createElement('img');
       img.src = s.image;
       img.dataset.idx = i;
@@ -1100,13 +1296,15 @@ function enterPreview() {
         const s = sections[idx];
         narrative.querySelectorAll('.story-section').forEach(el => el.classList.add('dim'));
         best.classList.remove('dim');
-        if (s.lat != null) previewMap.flyTo([s.lat, s.lng], useCustomMap ? previewMap.getZoom() : mapZoom, { duration: 0.7, easeLinearity: 0.5 });
+        if (s.lat != null) previewMap.flyTo([s.lat, s.lng], useCustomMap ? customMapZoom : mapZoom, { duration: 0.7, easeLinearity: 0.5 });
         document.querySelectorAll('.numbered-marker').forEach(el => el.classList.remove('active-marker'));
         const pm = document.getElementById('pm-' + idx);
         if (pm) pm.classList.add('active-marker');
-        imgPanel.querySelectorAll('img').forEach(img => img.classList.remove('active-img'));
-        const activeImg = imgPanel.querySelector(`img[data-idx="${idx}"]`);
-        if (activeImg) activeImg.classList.add('active-img');
+        if (imgPanel.children.length) {
+          imgPanel.querySelectorAll('img').forEach(img => img.classList.remove('active-img'));
+          const activeImg = imgPanel.querySelector(`img[data-idx="${idx}"]`);
+          if (activeImg) activeImg.classList.add('active-img');
+        }
       };
       scrollRoot.addEventListener('scroll', updateActiveSection, { passive: true });
       updateActiveSection();
@@ -1116,13 +1314,13 @@ function enterPreview() {
       const img = new Image();
       img.onload = () => {
         const bounds = [[0, 0], [img.height, img.width]];
-        previewMap = L.map('map-preview', { crs: L.CRS.Simple, zoomControl: true, scrollWheelZoom: false, minZoom: -3, maxZoom: 3, zoomSnap: 0.25, attributionControl: false });
+        previewMap = L.map('map-preview', { crs: L.CRS.Simple, zoomControl: true, scrollWheelZoom: false, minZoom: -3, maxZoom: 5, zoomSnap: 0.25, attributionControl: false });
         L.imageOverlay(customMapImage, bounds).addTo(previewMap);
         previewMap.fitBounds(bounds, { padding: [0, 0] });
         previewMap.setMaxBounds(bounds);
         addPreviewMarkers();
         const first = sections.find(s => s.lat != null);
-        if (first) previewMap.setView([first.lat, first.lng], previewMap.getZoom());
+        if (first) previewMap.setView([first.lat, first.lng], customMapZoom);
         setupScrollSync();
       };
       img.src = customMapImage;
@@ -1150,6 +1348,7 @@ function enterEdit() {
   document.getElementById('preview-mode').style.display = 'none';
   document.getElementById('btn-preview').style.display = '';
   document.getElementById('btn-edit').style.display = 'none';
+  document.getElementById('btn-design').style.display = '';
   if (previewMap) { previewMap.remove(); previewMap = null; }
   if (editMap) setTimeout(() => editMap.invalidateSize(), 100);
 }
@@ -1168,6 +1367,63 @@ document.getElementById('btn-export').addEventListener('click', () => {
 function generateExport() {
   const secs = JSON.stringify(sections);
   const pal = PALETTES[paletteId] || PALETTES.cabin;
+  const lay = layoutId || 'classic';
+  const cov = coverId || 'center';
+  const isInline = (lay === 'immersive');
+
+  // Cover-specific CSS
+  let coverCSS = '';
+  let heroClass = '';
+  if (cov === 'side') {
+    heroClass = ' hero-side';
+    coverCSS = `#hero.hero-side{align-items:flex-start;justify-content:flex-start;text-align:left;padding:60px 60px 0;background-position:bottom center}
+#hero.hero-side.has-bg::before{top:auto;bottom:0;height:55%;background:linear-gradient(to top,rgba(0,0,0,.1),transparent)}
+#hero.hero-side h1{font-size:52px;font-weight:900;color:${pal.text};text-shadow:none;max-width:700px}
+#hero.hero-side p{color:${pal.textMuted};text-shadow:none;font-size:18px;max-width:600px}
+#hero.hero-side .scroll-hint{color:${pal.textMuted}}`;
+  } else if (cov === 'bold') {
+    heroClass = ' hero-bold';
+    coverCSS = `#hero.hero-bold{align-items:flex-start;justify-content:flex-end;text-align:left;padding:0 60px 60px}
+#hero.hero-bold.has-bg::before{background:linear-gradient(to top,rgba(0,0,0,.7) 0%,rgba(0,0,0,.2) 40%,transparent 70%)}
+#hero.hero-bold h1{font-size:56px;font-weight:900;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,.8);max-width:700px}
+#hero.hero-bold p{color:rgba(255,255,255,.85);text-shadow:0 1px 8px rgba(0,0,0,.6);font-size:18px;max-width:600px}
+#hero.hero-bold .scroll-hint{color:rgba(255,255,255,.6)}`;
+  }
+
+  // Layout-specific CSS
+  let layoutCSS = '';
+  if (lay === 'reverse') {
+    layoutCSS = '#story-body{flex-direction:row-reverse}';
+  } else if (lay === 'immersive') {
+    layoutCSS = `#story-body{display:block;position:relative}
+#left{width:100%;padding:0;position:relative;z-index:2}
+#map{position:fixed;top:0;left:0;width:100%;height:100vh;z-index:1;border-radius:0;margin:0;border:none}
+#narrative{position:relative;z-index:2;max-width:420px;margin-left:40px;padding-top:30vh;padding-bottom:30vh}
+.story-section{background:${pal.bg};border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.25);padding:30px;margin-bottom:50vh;min-height:auto}
+.story-section.dim{opacity:.7}
+.section-inline-img{width:100%;border-radius:6px;margin-top:12px}
+#right{display:none}`;
+  }
+
+  // Build section HTML for inline-image layouts
+  const sectionBuildJS = isInline
+    ? `sections.forEach(function(s,i){
+  var d=document.createElement('div');d.className='story-section';d.dataset.idx=i;
+  var imgHtml=s.image?'<img class="section-inline-img" src="'+s.image+'" onerror="this.style.display=\\'none\\'">':'';
+  d.innerHTML='<h2>'+(i+1)+'. '+(s.title||'Untitled')+'</h2><p>'+(s.body||'').replace(/\\n/g,'<br>')+'</p>'+imgHtml;
+  narrative.appendChild(d);
+});`
+    : `sections.forEach(function(s,i){
+  var d=document.createElement('div');d.className='story-section';d.dataset.idx=i;
+  d.innerHTML='<h2>'+(i+1)+'. '+(s.title||'Untitled')+'</h2><p>'+(s.body||'').replace(/\\n/g,'<br>')+'</p>';
+  narrative.appendChild(d);
+  if(s.image){var img=document.createElement('img');img.src=s.image;img.dataset.idx=i;img.onerror=function(){this.style.display='none'};right.appendChild(img);}
+});`;
+
+  const imgSyncJS = isInline ? '' : `
+    right.querySelectorAll('img').forEach(function(img){img.classList.remove('active-img')});
+    var ai=right.querySelector('img[data-idx="'+idx+'"]');if(ai)ai.classList.add('active-img');`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1202,11 +1458,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .leaflet-control-zoom a{background:${pal.bgSecondary}!important;color:${pal.controlText}!important;border-color:${pal.border}!important}
 .leaflet-control-zoom a:hover{background:${pal.border}!important;color:${pal.controlText}!important}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:${pal.bg}}::-webkit-scrollbar-thumb{background:${pal.secondary};border-radius:3px}
+${coverCSS}
+${layoutCSS}
 </style>
 </head>
 <body>
 <div id="scroll-container">
-<div id="hero"><h1${heroTextColor ? ` style="color:${heroTextColor.replace(/'/g, "\\'")}"` : ''}>${esc(storyTitle).replace(/'/g, "\\'")}</h1><p${heroTextColor ? ` style="color:${heroTextColor.replace(/'/g, "\\'")}"` : ''}>${esc(heroSubtitle).replace(/'/g, "\\'")}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div></div>
+<div id="hero" class="${heroClass.trim()}"><h1${heroTextColor ? ` style="color:${heroTextColor.replace(/'/g, "\\'")}"` : ''}>${esc(storyTitle).replace(/'/g, "\\'")}</h1><p${heroTextColor ? ` style="color:${heroTextColor.replace(/'/g, "\\'")}"` : ''}>${esc(heroSubtitle).replace(/'/g, "\\'")}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div></div>
 <div id="story-body"><div id="left"><div id="map"></div><div id="narrative"></div></div><div id="right"></div></div>
 </div>
 ${useCustomMap && customMapImage ? `<img id="custom-map-src" src="${customMapImage.replace(/"/g, '&quot;')}" style="display:none">` : ''}
@@ -1217,12 +1475,7 @@ var sc=document.getElementById('scroll-container');
 ${heroImage ? `var h=document.getElementById('hero');h.classList.add('has-bg');h.style.backgroundImage='url(${heroImage.replace(/'/g, "\\'")})'` : ''}
 var narrative=document.getElementById('narrative');
 var right=document.getElementById('right');
-sections.forEach(function(s,i){
-  var d=document.createElement('div');d.className='story-section';d.dataset.idx=i;
-  d.innerHTML='<h2>'+(i+1)+'. '+(s.title||'Untitled')+'</h2><p>'+(s.body||'').replace(/\\n/g,'<br>')+'</p>';
-  narrative.appendChild(d);
-  if(s.image){var img=document.createElement('img');img.src=s.image;img.dataset.idx=i;img.onerror=function(){this.style.display='none'};right.appendChild(img);}
-});
+${sectionBuildJS}
 function addMarkers(map){
   sections.forEach(function(s,i){
     if(s.lat==null)return;
@@ -1250,11 +1503,9 @@ function setupScroll(map){
     var s=sections[idx];
     narrative.querySelectorAll('.story-section').forEach(function(el){el.classList.add('dim')});
     best.classList.remove('dim');
-    if(s.lat!=null)map.flyTo([s.lat,s.lng],useCustomMap?map.getZoom():${mapZoom},{duration:0.7,easeLinearity:0.5});
+    if(s.lat!=null)map.flyTo([s.lat,s.lng],useCustomMap?${customMapZoom}:${mapZoom},{duration:0.7,easeLinearity:0.5});
     document.querySelectorAll('.numbered-marker').forEach(function(el){el.classList.remove('active-marker')});
-    var pm=document.getElementById('pm-'+idx);if(pm)pm.classList.add('active-marker');
-    right.querySelectorAll('img').forEach(function(img){img.classList.remove('active-img')});
-    var ai=right.querySelector('img[data-idx="'+idx+'"]');if(ai)ai.classList.add('active-img');
+    var pm=document.getElementById('pm-'+idx);if(pm)pm.classList.add('active-marker');${imgSyncJS}
   };
   sc.addEventListener('scroll',updateActiveSection,{passive:true});
   updateActiveSection();
@@ -1264,11 +1515,11 @@ if(useCustomMap){
   if(cmSrc){
     var ci=new Image();ci.onload=function(){
       var bounds=[[0,0],[ci.height,ci.width]];
-      var map=L.map('map',{crs:L.CRS.Simple,zoomControl:true,scrollWheelZoom:false,minZoom:-3,maxZoom:3,zoomSnap:0.25,attributionControl:false});
+      var map=L.map('map',{crs:L.CRS.Simple,zoomControl:true,scrollWheelZoom:false,minZoom:-3,maxZoom:5,zoomSnap:0.25,attributionControl:false});
       L.imageOverlay(cmSrc.src,bounds).addTo(map);map.fitBounds(bounds,{padding:[0,0]});map.setMaxBounds(bounds);
       addMarkers(map);
       var first=sections.find(function(s){return s.lat!=null});
-      if(first)map.setView([first.lat,first.lng],map.getZoom());
+      if(first)map.setView([first.lat,first.lng],${customMapZoom});
       setupScroll(map);
     };ci.src=cmSrc.src;
   }
@@ -1284,6 +1535,14 @@ if(useCustomMap){
 </body>
 </html>`;
 }
+
+// ── Design drawer ──
+document.getElementById('btn-design').addEventListener('click', () => {
+  document.getElementById('design-drawer').classList.toggle('open');
+});
+document.getElementById('drawer-close').addEventListener('click', () => {
+  document.getElementById('design-drawer').classList.remove('open');
+});
 
 // ── Event wiring ──
 document.getElementById('btn-back').addEventListener('click', returnToLanding);
