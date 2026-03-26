@@ -1354,18 +1354,63 @@ function enterEdit() {
 }
 
 // ── Export ──
-document.getElementById('btn-export').addEventListener('click', () => {
-  const html = generateExport();
+// Compress a base64 image for export (smaller size, lower quality)
+function compressForExport(dataUrl, maxSize, quality) {
+  return new Promise((resolve) => {
+    if (!dataUrl) return resolve('');
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+document.getElementById('btn-export').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-export');
+  btn.disabled = true;
+  btn.textContent = 'Compressing…';
+
+  // Compress images for export (800px max, 0.5 quality)
+  const exportSections = JSON.parse(JSON.stringify(sections));
+  for (const s of exportSections) {
+    if (s.image) s.image = await compressForExport(s.image, 800, 0.5);
+  }
+  const exportHeroImage = await compressForExport(heroImage, 800, 0.5);
+  const exportCustomMapImage = await compressForExport(customMapImage, 1200, 0.6);
+
+  const html = generateExport(exportSections, exportHeroImage, exportCustomMapImage);
+  const sizeMB = (new Blob([html]).size / (1024 * 1024)).toFixed(1);
+
+  if (parseFloat(sizeMB) > 1.5) {
+    alert(`Warning: This export is ${sizeMB} MB. Large files may fail to load when pasted into Google Sites embed. Consider using fewer or smaller images.`);
+  }
+
   const blob = new Blob([html], { type: 'text/html' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = (storyTitle || 'storymap').replace(/[^a-z0-9]/gi, '_') + '.html';
   a.click();
   URL.revokeObjectURL(a.href);
+
+  btn.disabled = false;
+  btn.textContent = 'Export HTML';
 });
 
-function generateExport() {
-  const secs = JSON.stringify(sections);
+function generateExport(exportSections, exportHeroImage, exportCustomMapImage) {
+  const expSections = exportSections || sections;
+  const expHero = exportHeroImage !== undefined ? exportHeroImage : heroImage;
+  const expCustomMap = exportCustomMapImage !== undefined ? exportCustomMapImage : customMapImage;
+  const secs = JSON.stringify(expSections);
   const pal = PALETTES[paletteId] || PALETTES.cabin;
   const lay = layoutId || 'classic';
   const cov = coverId || 'center';
@@ -1467,12 +1512,12 @@ ${layoutCSS}
 <div id="hero" class="${heroClass.trim()}"><h1${heroTextColor ? ` style="color:${heroTextColor.replace(/'/g, "\\'")}"` : ''}>${esc(storyTitle).replace(/'/g, "\\'")}</h1><p${heroTextColor ? ` style="color:${heroTextColor.replace(/'/g, "\\'")}"` : ''}>${esc(heroSubtitle).replace(/'/g, "\\'")}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div></div>
 <div id="story-body"><div id="left"><div id="map"></div><div id="narrative"></div></div><div id="right"></div></div>
 </div>
-${useCustomMap && customMapImage ? `<img id="custom-map-src" src="${customMapImage.replace(/"/g, '&quot;')}" style="display:none">` : ''}
+${useCustomMap && expCustomMap ? `<img id="custom-map-src" src="${expCustomMap.replace(/"/g, '&quot;')}" style="display:none">` : ''}
 <script>
 var sections=${secs};
 var useCustomMap=${useCustomMap};
 var sc=document.getElementById('scroll-container');
-${heroImage ? `var h=document.getElementById('hero');h.classList.add('has-bg');h.style.backgroundImage='url(${heroImage.replace(/'/g, "\\'")})'` : ''}
+${expHero ? `var h=document.getElementById('hero');h.classList.add('has-bg');h.style.backgroundImage='url(${expHero.replace(/'/g, "\\'")})'` : ''}
 var narrative=document.getElementById('narrative');
 var right=document.getElementById('right');
 ${sectionBuildJS}
