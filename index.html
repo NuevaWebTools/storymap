@@ -3,121 +3,193 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StoryMap Builder</title>
+<title>Nueva Pinpoint</title>
 <link rel="icon" type="image/png" href="assets/storymapfavicon.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
-  --ed-bg: #FAF5EF; --ed-panel: #F2E8DD; --ed-card: #FFF9F3; --ed-border: #D6C4B0;
-  --ed-accent: #A65E2E; --ed-accent-hover: #8B4F26; --ed-secondary: #C49A6C; --ed-secondary-hover: #B08858;
-  --ed-text: #2A1F18; --ed-muted: #7A6555; --ed-placeholder: #B0A090;
-  --ed-danger: #C0503A; --ed-danger-hover: #A3422F; --ed-success: #5B8A5E;
-  --ed-hint-bg: rgba(42,31,24,.8);
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f4f4f5;
+  --panel-3: #ebebee;
+  --card: #ffffff;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --text: #0a0a0a;
+  --muted: #737373;
+  --placeholder: #a3a3a3;
+  --accent: #0a0a0a;
+  --accent-hover: #262626;
+  --secondary: #f5f5f5;
+  --secondary-hover: #e5e5e5;
+  --link: #2563eb;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --success: #16a34a;
+  --hint-bg: rgba(10,10,10,.85);
+  --pill-blue: #dbeafe; --pill-blue-text: #1e40af;
+  --pill-teal: #cffafe; --pill-teal-text: #155e75;
+  --pill-green: #dcfce7; --pill-green-text: #166534;
+  --pill-amber: #fef3c7; --pill-amber-text: #92400e;
+  --pill-gray: #f5f5f5; --pill-gray-text: #404040;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.08);
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  /* Aliases: existing rules use --ed-* names — point them at the new tokens. */
+  --ed-bg: var(--bg);
+  --ed-panel: var(--panel-2);
+  --ed-card: var(--card);
+  --ed-border: var(--border);
+  --ed-accent: var(--accent);
+  --ed-accent-hover: var(--accent-hover);
+  --ed-secondary: var(--secondary);
+  --ed-secondary-hover: var(--secondary-hover);
+  --ed-text: var(--text);
+  --ed-muted: var(--muted);
+  --ed-placeholder: var(--placeholder);
+  --ed-danger: var(--danger);
+  --ed-danger-hover: var(--danger-hover);
+  --ed-success: var(--success);
+  --ed-hint-bg: var(--hint-bg);
 }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; background: var(--ed-bg); color: var(--ed-text); }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; height: 100vh; overflow: hidden; background: var(--bg); color: var(--text); font-feature-settings: 'cv11', 'ss01'; }
 
 /* ── Toolbar ── */
-#toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--ed-panel); border-bottom: 1px solid var(--ed-border); min-height: 48px; z-index: 1000; flex-wrap: wrap; }
-#toolbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+#toolbar { display: flex; align-items: center; gap: 14px; padding: 12px 20px; background: var(--bg); border-bottom: 1px solid var(--border-strong); min-height: 64px; z-index: 1000; flex-wrap: wrap; }
+#toolbar-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 /* Design drawer */
-#design-drawer { position: absolute; top: 0; right: 0; width: 300px; height: 100%; background: var(--ed-panel); border-left: 1px solid var(--ed-border); z-index: 900; transform: translateX(100%); transition: transform .25s ease; overflow-y: auto; display: flex; flex-direction: column; }
+#design-drawer { position: absolute; top: 0; right: 0; width: 320px; height: 100%; background: var(--bg); border-left: 1px solid var(--border); box-shadow: -8px 0 24px rgba(0,0,0,.04); z-index: 900; transform: translateX(100%); transition: transform .25s ease; overflow-y: auto; display: flex; flex-direction: column; }
 #design-drawer.open { transform: translateX(0); }
-.drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--ed-border); }
-.drawer-header h2 { font-size: 15px; font-weight: 600; color: var(--ed-text); }
-.drawer-close { background: transparent; border: 1px solid var(--ed-border); color: var(--ed-muted); width: 28px; height: 28px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: background .2s, color .2s; }
-.drawer-close:hover { background: var(--ed-bg); color: var(--ed-text); }
-.drawer-body { padding: 16px; flex: 1; }
-.drawer-section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ed-muted); margin-bottom: 10px; font-weight: 600; }
+.drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+.drawer-header h2 { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+.drawer-close { background: transparent; border: 1px solid var(--border); color: var(--muted); width: 30px; height: 30px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: background .15s, color .15s, border-color .15s; }
+.drawer-close:hover { background: var(--panel-2); color: var(--text); border-color: var(--border-strong); }
+.drawer-body { padding: 20px; flex: 1; }
+.drawer-section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 12px; font-weight: 600; }
 #palette-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.palette-btn { display: flex; align-items: center; justify-content: center; padding: 14px 10px; border: 2px solid var(--ed-border); border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
-.palette-btn:hover { border-color: var(--ed-accent); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
-.palette-btn.active { border-color: var(--ed-accent); box-shadow: 0 0 0 1px var(--ed-accent); }
+.palette-btn { display: flex; align-items: center; justify-content: flex-start; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; color: var(--text); cursor: pointer; transition: border-color .15s, box-shadow .15s; background: var(--bg); }
+.palette-btn:hover { border-color: var(--border-strong); }
+.palette-btn.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.palette-swatch { display: inline-flex; gap: 3px; flex-shrink: 0; }
+.palette-swatch .dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,.08); display: block; }
 #layout-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.layout-btn { display: flex; flex-direction: column; align-items: stretch; padding: 0; border: 2px solid var(--ed-border); border-radius: 8px; background: var(--ed-card); cursor: pointer; transition: border-color .2s, box-shadow .2s; overflow: hidden; }
-.layout-btn:hover { border-color: var(--ed-accent); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
-.layout-btn.active { border-color: var(--ed-accent); box-shadow: 0 0 0 1px var(--ed-accent); }
-.layout-btn .layout-preview { height: 60px; display: flex; gap: 2px; padding: 6px; background: var(--ed-bg); }
+.layout-btn { display: flex; flex-direction: column; align-items: stretch; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; transition: border-color .15s, box-shadow .15s; overflow: hidden; }
+.layout-btn:hover { border-color: var(--border-strong); }
+.layout-btn.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.layout-btn .layout-preview { height: 64px; display: flex; gap: 2px; padding: 6px; background: var(--panel-2); }
 .layout-btn .lp-block { border-radius: 3px; }
-.layout-btn .layout-label { font-size: 11px; font-weight: 600; color: var(--ed-text); padding: 6px 8px; text-align: center; }
+.layout-btn .layout-label { font-size: 12px; font-weight: 500; color: var(--text); padding: 8px; text-align: center; border-top: 1px solid var(--border); }
 #cover-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.cover-btn { display: flex; flex-direction: column; align-items: stretch; padding: 0; border: 2px solid var(--ed-border); border-radius: 8px; background: var(--ed-card); cursor: pointer; transition: border-color .2s, box-shadow .2s; overflow: hidden; }
-.cover-btn:hover { border-color: var(--ed-accent); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
-.cover-btn.active { border-color: var(--ed-accent); box-shadow: 0 0 0 1px var(--ed-accent); }
-.cover-btn .cover-preview { height: 56px; position: relative; background: var(--ed-bg); overflow: hidden; }
-.cover-btn .cover-label { font-size: 11px; font-weight: 600; color: var(--ed-text); padding: 6px 8px; text-align: center; }
-#toolbar #story-title { background: var(--ed-card); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 4px 10px; border-radius: 4px; font-size: 16px; font-weight: 600; flex: 1; min-width: 120px; max-width: 400px; cursor: text; }
-#toolbar #story-title:focus { border-color: var(--ed-accent); outline: none; }
+.cover-btn { display: flex; flex-direction: column; align-items: stretch; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; transition: border-color .15s, box-shadow .15s; overflow: hidden; }
+.cover-btn:hover { border-color: var(--border-strong); }
+.cover-btn.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.cover-btn .cover-preview { height: 60px; position: relative; background: var(--panel-2); overflow: hidden; }
+.cover-btn .cover-label { font-size: 12px; font-weight: 500; color: var(--text); padding: 8px; text-align: center; border-top: 1px solid var(--border); }
+#toolbar #story-title { background: transparent; border: 1px solid transparent; color: var(--text); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 18px; font-weight: 700; letter-spacing: -0.01em; flex: 1; min-width: 120px; max-width: 500px; cursor: text; transition: background .15s, border-color .15s; }
+#toolbar #story-title:hover { background: var(--panel-2); }
+#toolbar #story-title:focus { border-color: var(--border-strong); background: var(--bg); outline: none; box-shadow: 0 0 0 3px rgba(10,10,10,.06); }
 #toolbar #story-title:focus::placeholder { color: transparent; }
-.btn { padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background .2s; }
-.btn-primary { background: var(--ed-accent); color: var(--ed-card); }
-.btn-primary:hover { background: var(--ed-accent-hover); }
-.btn-secondary { background: var(--ed-secondary); color: var(--ed-text); }
-.btn-secondary:hover { background: var(--ed-secondary-hover); }
-.btn-ghost { background: transparent; color: var(--ed-muted); border: 1px solid var(--ed-border); }
-.btn-ghost:hover { background: var(--ed-panel); color: var(--ed-text); }
-.btn-danger { background: var(--ed-danger); color: var(--ed-card); }
-.btn-danger:hover { background: var(--ed-danger-hover); }
+.btn { padding: 8px 16px; border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: background .15s, border-color .15s, color .15s, box-shadow .15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; line-height: 1; white-space: nowrap; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-secondary { background: var(--bg); color: var(--text); border-color: var(--border-strong); }
+.btn-secondary:hover:not(:disabled) { background: var(--panel-2); }
+.btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled) { background: var(--panel-2); border-color: var(--border-strong); }
+.btn-danger { background: var(--bg); color: var(--danger); border-color: var(--border); }
+.btn-danger:hover:not(:disabled) { background: #fef2f2; border-color: var(--danger); color: var(--danger-hover); }
 
 /* ── Edit Mode ── */
-#edit-mode { display: flex; height: calc(100vh - 48px); }
-#section-panel { width: 55%; min-width: 400px; overflow-y: auto; background: var(--ed-panel); border-right: 1px solid var(--ed-border); display: flex; flex-direction: column; }
-#section-list { flex: 1; overflow-y: auto; padding: 8px; }
-#add-section-bar { padding: 10px; border-top: 1px solid var(--ed-border); }
-#map-edit-container { flex: 1; position: relative; overflow: hidden; }
-#map-edit { height: 100%; width: 100%; background: var(--ed-bg); }
-.map-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--ed-hint-bg); color: var(--ed-card); padding: 6px 14px; border-radius: 20px; font-size: 12px; z-index: 800; pointer-events: none; }
-#map-mode-bar { padding: 12px; border-bottom: 1px solid var(--ed-border); }
-.map-mode-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; background: var(--ed-card); border: 2px solid var(--ed-border); border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--ed-text); transition: border-color .2s, background .2s; }
-.map-mode-toggle:hover { border-color: var(--ed-accent); background: var(--ed-bg); }
-.map-mode-toggle.active { border-color: var(--ed-accent); background: var(--ed-accent); color: var(--ed-card); }
-.map-mode-toggle input[type=checkbox] { accent-color: var(--ed-accent); width: 18px; height: 18px; }
-#custom-map-upload { margin-top: 8px; }
-#custom-map-upload .img-drop { background: var(--ed-bg); border: 2px dashed var(--ed-border); border-radius: 6px; padding: 16px; text-align: center; cursor: pointer; font-size: 13px; color: var(--ed-muted); position: relative; }
-#custom-map-upload .img-drop:hover, #custom-map-upload .img-drop.dragover { border-color: var(--ed-accent); background: rgba(0,0,0,.03); }
-#custom-map-upload .img-drop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+#edit-mode { display: flex; height: calc(100vh - 64px); }
+
+/* Left sidebar nav */
+#editor-nav { width: 200px; flex-shrink: 0; background: var(--bg); border-right: 1px solid var(--border-strong); padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border: 1px solid transparent; background: transparent; border-radius: var(--radius-sm); color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; transition: background .15s, color .15s, border-color .15s; text-align: left; font-family: inherit; }
+.nav-item:hover { background: var(--panel-2); color: var(--text); }
+.nav-item.active { background: var(--panel-3); color: var(--text); font-weight: 600; }
+.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* Section panel becomes a tab container */
+#section-panel { width: 380px; min-width: 320px; max-width: 480px; overflow: hidden; background: var(--panel-3); border-right: 1px solid var(--border-strong); display: flex; flex-direction: column; flex-shrink: 0; }
+.tab-panel { display: none; flex-direction: column; flex: 1; min-height: 0; }
+.tab-panel.active { display: flex; }
+.tab-header { padding: 22px 20px 16px; background: var(--panel-3); flex-shrink: 0; border-bottom: 1px solid var(--border); }
+.tab-header h2 { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; margin: 0; }
+.tab-header p { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+.tab-body { flex: 1; overflow-y: auto; padding: 16px; }
+#section-list { /* now lives inside tab-body, no own scroll */ }
+#add-section-bar { padding: 14px 16px; border-top: 1px solid var(--border); background: var(--bg); flex-shrink: 0; }
+#live-preview-pane { flex: 1; position: relative; overflow: hidden; background: var(--panel-2); }
+#image-upload-prompt { position: absolute; inset: 0; background: var(--panel-2); display: flex; align-items: center; justify-content: center; z-index: 100; transition: background .15s; }
+#image-upload-prompt.dragover { background: var(--panel-3); }
+.image-upload-inner { max-width: 420px; padding: 48px 32px; text-align: center; pointer-events: none; }
+.image-upload-inner > * { pointer-events: auto; }
+.image-upload-inner svg { width: 56px; height: 56px; color: var(--muted); margin-bottom: 18px; display: inline-block; }
+.image-upload-inner h3 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -0.01em; }
+.image-upload-inner p { font-size: 14px; color: var(--muted); line-height: 1.5; margin-bottom: 22px; }
+.image-upload-inner #image-upload-file { display: none; }
+#map-mode-bar { padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--bg); flex-shrink: 0; }
+#custom-map-upload { /* visible inside #map-mode-bar for Image stories with an uploaded image */ }
 #custom-map-upload .custom-map-actions { display: flex; gap: 8px; padding: 4px 0; }
 
 /* Hero card */
-.hero-card { background: var(--ed-card); border: 1px solid var(--ed-border); border-top: 3px solid var(--ed-accent); border-radius: 6px; padding: 14px; margin-bottom: 14px; transition: opacity .2s, filter .2s; opacity: 0.45; filter: grayscale(30%); cursor: pointer; }
-.hero-card.active { opacity: 1; filter: none; }
-.hero-card .hero-label { display: flex; align-items: center; gap: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ed-accent); margin-bottom: 10px; font-weight: 700; }
-.hero-card .hero-label svg { width: 14px; height: 14px; fill: var(--ed-accent); flex-shrink: 0; }
-.hero-card input, .hero-card textarea { width: 100%; background: var(--ed-bg); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
-.hero-card textarea { resize: vertical; min-height: 40px; }
-.hero-card input::placeholder, .hero-card textarea::placeholder { color: var(--ed-placeholder); font-style: italic; }
+.hero-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; transition: opacity .15s, border-color .15s, box-shadow .15s; opacity: 0.75; cursor: pointer; position: relative; box-shadow: var(--shadow-sm); }
+.hero-card.active { opacity: 1; border-color: var(--border-strong); box-shadow: var(--shadow); }
+.hero-card.active::before { content: ''; position: absolute; left: -1px; top: 12px; bottom: 12px; width: 3px; background: var(--accent); border-radius: 0 3px 3px 0; }
+.hero-card .hero-label { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 12px; font-weight: 600; background: var(--panel-2); padding: 4px 10px; border-radius: 999px; }
+.hero-card .hero-label svg { width: 12px; height: 12px; fill: currentColor; flex-shrink: 0; }
+.hero-card input, .hero-card textarea { width: 100%; background: var(--panel-2); border: 1px solid var(--border-strong); color: var(--text); padding: 8px 10px; border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 8px; font-family: inherit; transition: border-color .15s, box-shadow .15s, background .15s; }
+.hero-card input:focus, .hero-card textarea:focus { outline: none; border-color: var(--accent); background: var(--bg); box-shadow: 0 0 0 3px rgba(10,10,10,.06); }
+.hero-card textarea { resize: vertical; min-height: 44px; }
+.hero-card input::placeholder, .hero-card textarea::placeholder { color: var(--placeholder); }
 .hero-card input:focus::placeholder, .hero-card textarea:focus::placeholder { color: transparent; }
-.hero-card input[readonly], .hero-card textarea[readonly] { cursor: default; }
-.hero-color-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.hero-color-row label { font-size: 12px; color: var(--ed-muted); }
-.hero-color-row input[type=color] { width: 36px; height: 28px; padding: 2px; border: 1px solid var(--ed-border); border-radius: 4px; cursor: pointer; background: var(--ed-bg); }
-.hero-color-row .hero-color-reset { font-size: 11px; color: var(--ed-muted); cursor: pointer; text-decoration: underline; }
-.hero-color-row .hero-color-reset:hover { color: var(--ed-accent); }
+.hero-card input[readonly], .hero-card textarea[readonly] { cursor: default; background: var(--panel-3); border-color: var(--border); color: var(--muted); }
+.hero-color-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.hero-color-row label { font-size: 12px; color: var(--muted); }
+.hero-color-row input[type=color] { width: 36px; height: 28px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; background: var(--bg); }
+.hero-color-row .hero-color-reset { font-size: 12px; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.hero-color-row .hero-color-reset:hover { color: var(--text); }
 
 /* Section cards */
-.section-card { background: var(--ed-card); border: 1px solid var(--ed-border); border-radius: 6px; padding: 12px; margin-bottom: 8px; transition: border-color .2s, opacity .2s, filter .2s; opacity: 0.45; filter: grayscale(30%); }
-.section-card.active { border-color: var(--ed-accent); opacity: 1; filter: none; }
+.section-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 8px; transition: border-color .15s, opacity .15s, box-shadow .15s; opacity: 0.78; position: relative; box-shadow: var(--shadow-sm); }
+.section-card.active { border-color: var(--border-strong); opacity: 1; box-shadow: var(--shadow); }
+.section-card.active::before { content: ''; position: absolute; left: -1px; top: 12px; bottom: 12px; width: 3px; background: var(--accent); border-radius: 0 3px 3px 0; }
 .section-card.dragging { opacity: 0.4; }
-.section-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.section-card-header .num { background: var(--ed-accent); color: var(--ed-card); width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
-.section-card input, .section-card textarea { width: 100%; background: var(--ed-bg); border: 1px solid var(--ed-border); color: var(--ed-text); padding: 6px 8px; border-radius: 4px; font-size: 13px; margin-bottom: 6px; font-family: inherit; }
-.section-card textarea { resize: vertical; min-height: 60px; }
-.section-card input::placeholder, .section-card textarea::placeholder { color: var(--ed-placeholder); }
+.section-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.section-card-header .num { background: var(--accent); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+.section-card input, .section-card textarea { width: 100%; background: var(--panel-2); border: 1px solid var(--border-strong); color: var(--text); padding: 8px 10px; border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 8px; font-family: inherit; transition: border-color .15s, box-shadow .15s, background .15s; }
+.section-card input:focus, .section-card textarea:focus { outline: none; border-color: var(--accent); background: var(--bg); box-shadow: 0 0 0 3px rgba(10,10,10,.06); }
+.section-card textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+.section-card input::placeholder, .section-card textarea::placeholder { color: var(--placeholder); }
 .section-card input:focus::placeholder, .section-card textarea:focus::placeholder { color: transparent; }
-.section-card input[readonly], .section-card textarea[readonly] { cursor: default; }
-.img-drop { border: 2px dashed var(--ed-border); border-radius: 6px; padding: 12px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 6px; font-size: 12px; color: var(--ed-muted); position: relative; }
-.img-drop:hover, .img-drop.dragover { border-color: var(--ed-accent); background: rgba(0,0,0,.03); }
+.section-card input[readonly], .section-card textarea[readonly] { cursor: default; background: var(--panel-3); border-color: var(--border); color: var(--muted); }
+.img-drop { border: 1.5px dashed var(--border-strong); border-radius: var(--radius-sm); padding: 14px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; margin-bottom: 8px; font-size: 12px; color: var(--muted); position: relative; }
+.img-drop:hover, .img-drop.dragover { border-color: var(--accent); background: var(--panel-2); color: var(--text); }
 .img-drop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 5; }
+.img-drop.has-image { padding: 6px; border-style: solid; border-color: var(--border); }
 .img-drop.has-image input[type=file] { pointer-events: none; }
-.img-drop .thumb { max-width: 100%; max-height: 120px; border-radius: 4px; margin-bottom: 6px; display: block; }
-.img-drop .remove-img { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.75); color: #fff; border: 1px solid rgba(255,255,255,.4); border-radius: 4px; width: 28px; height: 28px; padding: 0; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: background .2s; }
-.img-drop .remove-img:hover { background: var(--ed-danger); border-color: var(--ed-danger); }
+.img-drop .thumb { max-width: 100%; max-height: 140px; border-radius: var(--radius-sm); margin-bottom: 0; display: block; }
+.img-drop .remove-img { position: absolute; top: 10px; right: 10px; background: rgba(10,10,10,.78); color: #fff; border: none; border-radius: var(--radius-sm); width: 28px; height: 28px; padding: 0; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: background .15s; }
+.img-drop .remove-img:hover { background: var(--danger); }
 .img-drop .remove-img svg { width: 14px; height: 14px; fill: currentColor; }
-.section-loc { font-size: 12px; color: var(--ed-accent); margin-top: 6px; font-weight: 600; padding: 4px 8px; background: color-mix(in srgb, var(--ed-accent) 12%, transparent); border-radius: 4px; text-align: center; }
-.section-loc.set { color: var(--ed-success); font-weight: 400; background: transparent; text-align: left; font-size: 11px; padding: 0; margin-top: 4px; }
-.section-card-actions { display: flex; gap: 6px; }
-.section-card-actions .btn { padding: 3px 8px; font-size: 11px; }
+.section-loc-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.section-loc { font-size: 12px; color: var(--muted); font-weight: 500; padding: 6px 10px; background: var(--panel-2); border-radius: var(--radius-sm); }
+.section-loc.set { color: var(--success); font-weight: 500; background: var(--pill-green); font-size: 11px; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; }
+.set-loc-btn { padding: 6px 10px !important; font-size: 12px !important; }
+.set-loc-btn svg { flex-shrink: 0; }
+.section-card-actions { display: flex; gap: 4px; }
+.section-card-actions .btn { padding: 5px 9px; font-size: 12px; min-width: 28px; background: var(--panel-2); border-color: var(--border-strong); }
+.section-card-actions .btn.btn-ghost:hover:not(:disabled) { background: var(--panel-3); }
+.section-card-actions .btn.btn-danger { background: var(--bg); border-color: var(--border-strong); }
 
 /* ── Preview Mode ── */
 #preview-mode {
@@ -131,8 +203,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
   --palette-text-muted: #7A6555;
   --palette-control-text: #2A1F18;
 }
-#preview-mode { display: none; height: calc(100vh - 48px); overflow-y: auto; background: var(--palette-bg); }
-#preview-mode #hero-fullpage { width: 100%; height: calc(100vh - 48px); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: var(--palette-bg); background-size: cover; background-position: center; position: relative; }
+#preview-mode { display: block; height: 100%; width: 100%; overflow-y: auto; background: var(--palette-bg); }
+#preview-mode #hero-fullpage { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: var(--palette-bg); background-size: cover; background-position: center; position: relative; }
 #preview-mode #hero-fullpage.has-bg::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,.55); }
 #preview-mode #hero-fullpage h1 { position: relative; z-index: 1; font-size: 48px; color: var(--palette-accent); text-shadow: 0 2px 12px rgba(0,0,0,.7); margin-bottom: 16px; }
 #preview-mode #hero-fullpage p { position: relative; z-index: 1; font-size: 20px; color: var(--palette-text-muted); text-shadow: 0 1px 6px rgba(0,0,0,.6); max-width: 600px; line-height: 1.6; }
@@ -153,11 +225,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 #preview-mode #hero-fullpage.hero-bold h1 { font-size: 56px; font-weight: 900; color: #fff; text-shadow: 0 2px 20px rgba(0,0,0,.8); max-width: 700px; }
 #preview-mode #hero-fullpage.hero-bold p { color: rgba(255,255,255,.85); text-shadow: 0 1px 8px rgba(0,0,0,.6); font-size: 18px; max-width: 600px; }
 #preview-mode #hero-fullpage.hero-bold .scroll-hint { color: rgba(255,255,255,.6); }
-#preview-mode #story-body { display: flex; align-items: flex-start; min-height: calc(100vh - 48px); background: var(--palette-bg); }
+#preview-mode #story-body { display: flex; align-items: flex-start; min-height: 100%; background: var(--palette-bg); }
 #preview-mode #preview-left { width: 35%; background: var(--palette-bg); padding: 16px; }
 #preview-mode #map-preview { position: sticky; top: 16px; width: 100%; height: 35vh; border-bottom: 1px solid var(--palette-border); z-index: 10; border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
 #preview-mode #narrative { width: 100%; }
-#preview-mode #preview-right { position: sticky; top: 0; width: 65%; height: calc(100vh - 48px); display: flex; align-items: center; justify-content: center; background: var(--palette-bg-dark); overflow: hidden; }
+#preview-mode #preview-right { position: sticky; top: 0; width: 65%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--palette-bg-dark); overflow: hidden; min-height: calc(100vh - 64px); }
 #preview-mode #preview-right img { position: absolute; width: 100%; height: 100%; object-fit: contain; border-radius: 10px; transition: opacity 1.2s ease; opacity: 0; }
 #preview-mode #preview-right img.active-img { opacity: 1; }
 #preview-mode .story-section { min-height: 60vh; display: flex; flex-direction: column; justify-content: center; padding: 40px 30px; transition: opacity .4s; }
@@ -180,50 +252,84 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 /* ── Layout: Immersive (full-screen map, floating narrative) ── */
 #preview-mode.layout-immersive #story-body { display: block; position: relative; min-height: auto; }
 #preview-mode.layout-immersive #preview-left { width: 100%; padding: 0; position: relative; z-index: 2; pointer-events: none; }
-#preview-mode.layout-immersive #map-preview { position: sticky; top: 0; left: 0; width: 100%; height: calc(100vh - 48px); z-index: 1; border-radius: 0; margin: 0; border: none; pointer-events: auto; }
-#preview-mode.layout-immersive #narrative { position: relative; z-index: 2; max-width: 420px; margin-left: 40px; margin-top: calc(-100vh + 48px); padding-top: 40vh; padding-bottom: 40vh; }
+#preview-mode.layout-immersive #map-preview { position: sticky; top: 0; left: 0; width: 100%; height: 100%; min-height: calc(100vh - 64px); z-index: 1; border-radius: 0; margin: 0; border: none; pointer-events: auto; }
+#preview-mode.layout-immersive #narrative { position: relative; z-index: 2; max-width: 420px; margin-left: 40px; margin-top: calc(-100vh + 64px); padding-top: 40vh; padding-bottom: 40vh; }
 #preview-mode.layout-immersive .story-section { background: var(--palette-bg); border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.25); padding: 30px; margin-bottom: 60vh; min-height: auto; pointer-events: auto; }
 #preview-mode.layout-immersive .story-section.dim { opacity: 0.7; }
 #preview-mode.layout-immersive .story-section .section-inline-img { width: 100%; border-radius: 6px; margin-top: 12px; }
 #preview-mode.layout-immersive #preview-right { display: none; }
 
 /* Scrollbar (edit mode) */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--ed-bg); }
-::-webkit-scrollbar-thumb { background: var(--ed-secondary); border-radius: 3px; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e5e5e5; border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: #d4d4d4; background-clip: padding-box; border: 2px solid transparent; }
 
 /* Number markers on map (edit mode) */
-.numbered-marker { background: var(--ed-accent); color: #fff; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
-.numbered-marker.active-marker { background: #fff; color: var(--ed-accent); transform: scale(1.3); }
+.numbered-marker { background: var(--accent); color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: transform .15s; }
+.numbered-marker.active-marker { background: #fff; color: var(--accent); transform: scale(1.25); box-shadow: 0 4px 12px rgba(0,0,0,.3); }
 
 /* Leaflet zoom control styling (edit mode) */
-.leaflet-control-zoom a { background: var(--ed-panel) !important; color: var(--ed-text) !important; border-color: var(--ed-border) !important; }
-.leaflet-control-zoom a:hover { background: var(--ed-border) !important; color: var(--ed-text) !important; }
+.leaflet-control-zoom a { background: var(--bg) !important; color: var(--text) !important; border-color: var(--border) !important; box-shadow: var(--shadow-sm); }
+.leaflet-control-zoom a:hover { background: var(--panel-2) !important; color: var(--text) !important; }
 
 /* ── Landing Page ── */
-#landing-page { height: 100vh; background: var(--ed-bg); padding: 40px; overflow-y: auto; display: flex; flex-direction: column; }
-#landing-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
-#landing-header h1 { font-size: 28px; font-weight: 700; color: var(--ed-accent); }
+#landing-page { height: 100vh; background: var(--bg); padding: 48px 56px; overflow-y: auto; display: flex; flex-direction: column; }
+#landing-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+#landing-header h1 { font-size: 32px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; line-height: 1.1; }
+#landing-header .landing-subtitle { font-size: 14px; color: var(--muted); margin-top: 6px; }
 #storymap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; align-content: start; flex: 1; }
-.storymap-card { background: var(--ed-card); border: 1px solid var(--ed-border); border-radius: 8px; overflow: hidden; transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-.storymap-card:hover { border-color: var(--ed-accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
-.storymap-card-thumb { width: 100%; height: 160px; background: var(--ed-panel); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.storymap-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: border-color .15s, transform .15s, box-shadow .15s; cursor: pointer; box-shadow: var(--shadow-sm); }
+.storymap-card:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.storymap-card-thumb { width: 100%; height: 170px; background: var(--panel-2); display: flex; align-items: center; justify-content: center; overflow: hidden; border-bottom: 1px solid var(--border); }
 .storymap-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.storymap-card-thumb .placeholder-icon { font-size: 48px; color: var(--ed-secondary); }
-.storymap-card-body { padding: 14px; }
-.storymap-card-body h3 { font-size: 16px; color: var(--ed-text); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.storymap-card-meta { font-size: 12px; color: var(--ed-muted); margin-bottom: 12px; }
+.storymap-card-thumb .placeholder-icon { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0.01em; }
+.storymap-card-body { padding: 16px 18px 18px; }
+.storymap-card-body h3 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
+.storymap-card-meta { font-size: 12px; color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.story-pill { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 500; line-height: 1.5; letter-spacing: 0; }
+.story-pill-map { background: var(--pill-blue); color: var(--pill-blue-text); }
+.story-pill-image { background: var(--pill-amber); color: var(--pill-amber-text); }
 .storymap-card-actions { display: flex; gap: 8px; }
-.storymap-card.create-new { border-style: dashed; border-color: var(--ed-secondary); display: flex; align-items: center; justify-content: center; min-height: 240px; }
-.storymap-card.create-new:hover { border-color: var(--ed-accent); background: rgba(0,0,0,.02); }
-.create-new-content { text-align: center; color: var(--ed-muted); }
-.create-new-content .plus { font-size: 48px; color: var(--ed-accent); display: block; margin-bottom: 8px; }
-#btn-back { background: transparent; border: 1px solid var(--ed-border); color: var(--ed-muted); padding: 6px 10px; border-radius: 4px; cursor: pointer; transition: background .2s, color .2s; display: inline-flex; align-items: center; justify-content: center; }
-#btn-back:hover { background: var(--ed-panel); color: var(--ed-text); }
+.storymap-card.create-new { border-style: dashed; border-color: var(--border-strong); background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 260px; }
+.storymap-card.create-new:hover { border-color: var(--accent); background: var(--panel-2); }
+.create-new-content { text-align: center; color: var(--muted); font-size: 14px; font-weight: 500; }
+.create-new-content .plus { font-size: 40px; line-height: 1; color: var(--text); display: block; margin-bottom: 8px; font-weight: 300; }
+#btn-back { background: var(--bg); border: 1px solid var(--border); color: var(--text); width: 36px; height: 36px; padding: 0; border-radius: var(--radius-sm); cursor: pointer; transition: background .15s, border-color .15s; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+#btn-back:hover { background: var(--panel-2); border-color: var(--border-strong); }
 #btn-back svg { width: 18px; height: 18px; fill: currentColor; }
-#landing-footer { margin-top: auto; padding-top: 24px; border-top: 1px solid var(--ed-border); text-align: center; font-size: 13px; color: var(--ed-muted); line-height: 1.6; flex-shrink: 0; }
-#landing-footer a { color: var(--ed-accent); text-decoration: none; }
+#landing-footer { margin-top: auto; padding-top: 32px; border-top: 1px solid var(--border); text-align: center; font-size: 13px; color: var(--muted); line-height: 1.6; flex-shrink: 0; }
+#landing-footer a { color: var(--link); text-decoration: none; font-weight: 500; }
 #landing-footer a:hover { text-decoration: underline; }
+
+/* ── Modal ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(10,10,10,.5); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; animation: modal-fade-in .2s ease; }
+@keyframes modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.modal { background: var(--bg); border-radius: var(--radius-lg); box-shadow: 0 24px 60px rgba(0,0,0,.25); max-width: 720px; width: 100%; overflow: hidden; animation: modal-pop .2s cubic-bezier(.2,.9,.4,1.1); }
+@keyframes modal-pop { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+.modal-header h2 { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+.modal-body { padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.story-type-card { display: flex; flex-direction: column; padding: 0; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: border-color .15s, transform .15s, box-shadow .15s; font-family: inherit; text-align: left; overflow: hidden; }
+.story-type-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.story-type-illustration { width: 100%; height: 160px; background: var(--panel-2); display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); }
+.story-type-illustration svg { width: 100%; height: 100%; display: block; }
+.story-type-info { padding: 16px 18px 18px; }
+.story-type-info h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; letter-spacing: -0.01em; }
+.story-type-info p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+@media (max-width: 640px) {
+  .modal-body { grid-template-columns: 1fr; }
+}
+
+/* Map placement modal */
+.modal-map { max-width: 900px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; }
+.modal-map-body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 12px; min-height: 0; flex: 1; }
+.modal-hint { font-size: 13px; color: var(--muted); }
+.modal-map-body #map-modal-map { flex: 1; min-height: 480px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--panel-2); overflow: hidden; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-map .numbered-marker.faded { opacity: 0.4; filter: grayscale(80%); }
+.modal-map .leaflet-control-zoom a { background: var(--bg) !important; color: var(--text) !important; border-color: var(--border) !important; }
+.modal-map .leaflet-control-zoom a:hover { background: var(--panel-2) !important; }
 </style>
 </head>
 <body>
@@ -231,11 +337,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
 <!-- LANDING PAGE -->
 <div id="landing-page">
   <div id="landing-header">
-    <h1>StoryMap Builder</h1>
+    <div class="landing-title-block">
+      <h1>Nueva Pinpoint</h1>
+      <p class="landing-subtitle">A tool to create your own storymap.</p>
+    </div>
   </div>
   <div id="storymap-grid"></div>
   <footer id="landing-footer">
-    This tool was designed for use by the Nueva School. Questions or comments? Please contact <a href="mailto:tstewart@neuvaschool.org">Trenton Stewart</a> (tstewart@neuvaschool.org).
+    This tool was designed for use by the Nueva School. Questions or comments? Please contact <a href="mailto:tstewart@nuevaschool.org">Trenton Stewart</a> (tstewart@nuevaschool.org).
   </footer>
 </div>
 
@@ -245,39 +354,51 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
     </button>
   <input type="text" id="story-title" placeholder="Story title…" value="My Story">
   <div id="toolbar-right">
-    <button class="btn btn-ghost" id="btn-design">Design</button>
-    <button class="btn btn-primary" id="btn-preview">Preview</button>
-    <button class="btn btn-secondary" id="btn-edit" style="display:none">Edit</button>
-    <button class="btn btn-ghost" id="btn-export">Export HTML</button>
+    <button class="btn btn-primary" id="btn-export">Export HTML</button>
   </div>
 </div>
 
 <!-- EDIT MODE -->
 <div id="edit-mode" style="display:none">
+  <nav id="editor-nav">
+    <button class="nav-item active" data-tab="cover" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+      <span>Cover</span>
+    </button>
+    <button class="nav-item" data-tab="sections" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+      <span>Sections</span>
+    </button>
+    <button class="nav-item" data-tab="design" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="17.5" cy="10.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="8.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="6.5" cy="12.5" r="1.5" fill="currentColor" stroke="none"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1a1.6 1.6 0 0 1 1.7-1.7H16c3 0 5.5-2.5 5.5-5.5C22 6 17.5 2 12 2z"/></svg>
+      <span>Design</span>
+    </button>
+  </nav>
   <div id="section-panel">
-    <div id="map-mode-bar">
-      <label class="map-mode-toggle">
-        <input type="checkbox" id="custom-map-toggle">
-        <span>Use custom image as map</span>
-      </label>
-      <div id="custom-map-upload" style="display:none"></div>
+    <div class="tab-panel active" id="tab-cover">
+      <div class="tab-header"><h2>Cover</h2><p>The opening hero of your story.</p></div>
+      <div class="tab-body" id="cover-content"></div>
     </div>
-    <div id="section-list"></div>
-    <div id="add-section-bar">
-      <button class="btn btn-primary" style="width:100%" id="btn-add">+ Add Section</button>
-    </div>
-  </div>
-  <div id="map-edit-container">
-    <div id="map-edit"></div>
-    <div class="map-hint" id="map-hint">Select a section, then click the map to set its location</div>
-    <div id="design-drawer">
-      <div class="drawer-header">
-        <h2>Design</h2>
-        <button class="drawer-close" id="drawer-close" title="Close">&times;</button>
+    <div class="tab-panel" id="tab-sections">
+      <div class="tab-header"><h2>Sections</h2><p>Add a section for each stop in your story.</p></div>
+      <div id="map-mode-bar" style="display:none">
+        <div id="custom-map-upload"></div>
       </div>
-      <div class="drawer-body">
-        <div class="drawer-section-label">Cover</div>
+      <div class="tab-body"><div id="section-list"></div></div>
+      <div id="add-section-bar">
+        <button class="btn btn-primary" style="width:100%" id="btn-add">+ Add Section</button>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab-design">
+      <div class="tab-header"><h2>Design</h2><p>Pick a cover style, layout, and theme.</p></div>
+      <div class="tab-body">
+        <div class="drawer-section-label">Cover style</div>
         <div id="cover-buttons"></div>
+        <div class="drawer-section-label" style="margin-top:20px">Hero text color</div>
+        <div class="hero-color-row">
+          <input type="color" id="hero-text-color" value="#ffffff" title="Hero text color">
+          <span class="hero-color-reset" id="hero-color-reset">Use palette default</span>
+        </div>
         <div class="drawer-section-label" style="margin-top:20px">Layout</div>
         <div id="layout-buttons"></div>
         <div class="drawer-section-label" style="margin-top:20px">Theme</div>
@@ -285,17 +406,101 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; h
       </div>
     </div>
   </div>
+  <div id="live-preview-pane">
+    <div id="preview-mode">
+      <div id="hero-fullpage"></div>
+      <div id="story-body">
+        <div id="preview-left">
+          <div id="map-preview"></div>
+          <div id="narrative"></div>
+        </div>
+        <div id="preview-right"></div>
+      </div>
+    </div>
+    <div id="image-upload-prompt" style="display:none">
+      <div class="image-upload-inner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+        <h3>Upload your image</h3>
+        <p>This image becomes the map for your story. Drop it here or pick a file.</p>
+        <button class="btn btn-primary" id="image-upload-btn" type="button">Choose image</button>
+        <input type="file" accept="image/*" id="image-upload-file">
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- PREVIEW MODE -->
-<div id="preview-mode">
-  <div id="hero-fullpage"></div>
-  <div id="story-body">
-    <div id="preview-left">
-      <div id="map-preview"></div>
-      <div id="narrative"></div>
+<!-- NEW STORY TYPE CHOOSER -->
+<div id="new-story-modal" class="modal-overlay" style="display:none">
+  <div class="modal" role="dialog" aria-labelledby="new-story-title">
+    <div class="modal-header">
+      <h2 id="new-story-title">How do you want to build your story?</h2>
+      <button class="drawer-close" id="new-story-close" title="Cancel" aria-label="Cancel">&times;</button>
     </div>
-    <div id="preview-right"></div>
+    <div class="modal-body">
+      <button class="story-type-card" data-type="map" type="button">
+        <div class="story-type-illustration">
+          <svg viewBox="0 0 240 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="240" height="140" fill="#dbeafe"/>
+            <path d="M22,38 Q45,28 72,38 L82,58 Q72,80 50,76 L30,66 Z" fill="#86efac"/>
+            <path d="M118,28 Q150,22 178,46 L184,72 Q160,86 128,80 L112,58 Z" fill="#86efac"/>
+            <path d="M38,92 Q60,86 78,102 L70,118 Q52,122 42,112 Z" fill="#86efac"/>
+            <path d="M138,96 Q172,90 198,106 L202,122 Q176,126 150,116 Z" fill="#86efac"/>
+            <circle cx="58" cy="54" r="12" fill="#0a0a0a"/>
+            <text x="58" y="58" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="Inter, sans-serif">1</text>
+            <circle cx="148" cy="50" r="12" fill="#0a0a0a"/>
+            <text x="148" y="54" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="Inter, sans-serif">2</text>
+            <circle cx="172" cy="108" r="12" fill="#0a0a0a"/>
+            <text x="172" y="112" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="Inter, sans-serif">3</text>
+          </svg>
+        </div>
+        <div class="story-type-info">
+          <h3>Map story</h3>
+          <p>Pin sections to real-world locations on a world map. Best for travel, history, or events that happened in different places.</p>
+        </div>
+      </button>
+      <button class="story-type-card" data-type="image" type="button">
+        <div class="story-type-illustration">
+          <svg viewBox="0 0 240 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="240" height="140" fill="#fde68a"/>
+            <rect y="118" width="240" height="22" fill="#a8a29e"/>
+            <path d="M30,50 L210,50 L196,42 L44,42 Z" fill="#57534e"/>
+            <rect x="40" y="50" width="160" height="68" fill="#d6d3d1"/>
+            <path d="M55,118 L55,90 Q55,76 70,76 Q85,76 85,90 L85,118 Z" fill="#78716c"/>
+            <path d="M105,118 L105,90 Q105,76 120,76 Q135,76 135,90 L135,118 Z" fill="#78716c"/>
+            <path d="M155,118 L155,90 Q155,76 170,76 Q185,76 185,90 L185,118 Z" fill="#78716c"/>
+            <rect x="115" y="50" width="10" height="14" fill="#57534e"/>
+            <circle cx="70" cy="62" r="12" fill="#0a0a0a"/>
+            <text x="70" y="66" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="Inter, sans-serif">1</text>
+            <circle cx="120" cy="62" r="12" fill="#0a0a0a"/>
+            <text x="120" y="66" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="Inter, sans-serif">2</text>
+            <circle cx="170" cy="62" r="12" fill="#0a0a0a"/>
+            <text x="170" y="66" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="Inter, sans-serif">3</text>
+          </svg>
+        </div>
+        <div class="story-type-info">
+          <h3>Image story</h3>
+          <p>Pin sections to your own uploaded image — annotate a building, painting, or diagram. Great for art, architecture, or science.</p>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MAP PLACEMENT MODAL -->
+<div id="map-modal" class="modal-overlay" style="display:none">
+  <div class="modal modal-map" role="dialog" aria-labelledby="map-modal-title">
+    <div class="modal-header">
+      <h2 id="map-modal-title">Set location</h2>
+      <button class="drawer-close" id="map-modal-close" title="Cancel" aria-label="Cancel">&times;</button>
+    </div>
+    <div class="modal-body modal-map-body">
+      <p class="modal-hint" id="map-modal-hint">Click anywhere on the map to place this section's pin.</p>
+      <div id="map-modal-map"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="map-modal-clear" type="button">Clear pin</button>
+        <button class="btn btn-primary" id="map-modal-done" type="button">Done</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -411,10 +616,12 @@ const PALETTES = {
   }
 };
 let paletteId = 'cabin';
-let editMap, previewMap;
-let editMarkers = [];
+let previewMap;
 let previewMarkers = [];
 let mode = 'edit';
+let activeTab = 'cover';
+let previewScrollHandler = null;
+let previewScrollRoot = null;
 
 // ── ID & Thumbnail Utilities ──
 function generateId() {
@@ -424,11 +631,28 @@ function generateId() {
 function generateThumbnail(dataUrl, callback) {
   const img = new Image();
   img.onload = () => {
+    const TW = 400, TH = 240;
     const canvas = document.createElement('canvas');
-    // 400x240 matches card thumb display (~280x160) at ~1.4x for crisp rendering
-    canvas.width = 400; canvas.height = 240;
-    canvas.getContext('2d').drawImage(img, 0, 0, 400, 240);
-    callback(canvas.toDataURL('image/jpeg', 0.75));
+    canvas.width = TW; canvas.height = TH;
+    const ctx = canvas.getContext('2d');
+    // Center-crop the source to TW:TH aspect, then scale to fill the canvas.
+    // Equivalent to CSS object-fit: cover.
+    const targetAspect = TW / TH;
+    const sourceAspect = img.width / img.height;
+    let sx, sy, sw, sh;
+    if (sourceAspect > targetAspect) {
+      sh = img.height;
+      sw = sh * targetAspect;
+      sx = (img.width - sw) / 2;
+      sy = 0;
+    } else {
+      sw = img.width;
+      sh = sw / targetAspect;
+      sx = 0;
+      sy = (img.height - sh) / 2;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, TW, TH);
+    callback(canvas.toDataURL('image/jpeg', 0.82));
   };
   img.src = dataUrl;
 }
@@ -455,6 +679,49 @@ async function updateIndexEntry(id, updates) {
 async function removeFromIndex(id) {
   const index = await loadIndex();
   await saveIndex(index.filter(e => e.id !== id));
+}
+
+// Populate the `type` field on any index entry that pre-dates the
+// Map/Image chooser. Reads each missing doc once; no-op once backfilled.
+async function backfillIndexTypes() {
+  const index = await loadIndex();
+  let changed = false;
+  for (const entry of index) {
+    if (entry.type) continue;
+    const doc = await dbGet('storymaps', entry.id);
+    if (doc) {
+      entry.type = doc.useCustomMap ? 'image' : 'map';
+      changed = true;
+    }
+  }
+  if (changed) await saveIndex(index);
+}
+
+// Older thumbnails were generated by stretching the source to 400x240,
+// which distorted portrait-aspect hero images. Regenerate each thumbnail
+// once with the new crop-to-fit algorithm.
+async function backfillThumbnails() {
+  const index = await loadIndex();
+  let changed = false;
+  for (const entry of index) {
+    if (entry._thumbFixed) continue;
+    if (!entry.heroImageThumb) { entry._thumbFixed = true; changed = true; continue; }
+    const doc = await dbGet('storymaps', entry.id);
+    if (doc && doc.heroImage) {
+      await new Promise(resolve => {
+        generateThumbnail(doc.heroImage, (newThumb) => {
+          entry.heroImageThumb = newThumb;
+          entry._thumbFixed = true;
+          changed = true;
+          resolve();
+        });
+      });
+    } else {
+      entry._thumbFixed = true;
+      changed = true;
+    }
+  }
+  if (changed) await saveIndex(index);
 }
 
 // ── Per-Storymap Load / Save ──
@@ -592,7 +859,7 @@ async function renderLanding() {
   const createCard = document.createElement('div');
   createCard.className = 'storymap-card create-new';
   createCard.innerHTML = '<div class="create-new-content"><span class="plus">+</span><div>Create New StoryMap</div></div>';
-  createCard.addEventListener('click', createNewStorymap);
+  createCard.addEventListener('click', openNewStoryModal);
   grid.appendChild(createCard);
 
   index.sort((a, b) => b.lastEdited - a.lastEdited);
@@ -601,13 +868,18 @@ async function renderLanding() {
     const card = document.createElement('div');
     card.className = 'storymap-card';
     const dateStr = new Date(entry.lastEdited).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const type = entry.type === 'image' ? 'image' : 'map';
+    const typeLabel = type === 'image' ? 'Image' : 'Map';
     card.innerHTML = `
       <div class="storymap-card-thumb">
-        ${entry.heroImageThumb ? '<img src="' + entry.heroImageThumb + '" alt="">' : '<span class="placeholder-icon">&#x1F5FA;</span>'}
+        ${entry.heroImageThumb ? '<img src="' + entry.heroImageThumb + '" alt="">' : '<span class="placeholder-icon">No preview available</span>'}
       </div>
       <div class="storymap-card-body">
         <h3>${esc(entry.title || 'Untitled')}</h3>
-        <div class="storymap-card-meta">Last edited: ${dateStr}</div>
+        <div class="storymap-card-meta">
+          <span class="story-pill story-pill-${type}">${typeLabel}</span>
+          <span>${dateStr}</span>
+        </div>
         <div class="storymap-card-actions">
           <button class="btn btn-primary btn-edit-map" data-id="${entry.id}">Edit</button>
           <button class="btn btn-danger btn-delete-map" data-id="${entry.id}">Delete</button>
@@ -644,9 +916,13 @@ async function showLanding() {
   document.getElementById('landing-page').style.display = 'flex';
   document.getElementById('toolbar').style.display = 'none';
   document.getElementById('edit-mode').style.display = 'none';
-  document.getElementById('preview-mode').style.display = 'none';
-  if (editMap) { editMap.remove(); editMap = null; }
+  if (previewScrollHandler && previewScrollRoot) {
+    previewScrollRoot.removeEventListener('scroll', previewScrollHandler);
+    previewScrollHandler = null;
+    previewScrollRoot = null;
+  }
   if (previewMap) { previewMap.remove(); previewMap = null; }
+  if (modalMap) { modalMap.remove(); modalMap = null; }
   await renderLanding();
 }
 
@@ -660,128 +936,39 @@ async function openStorymap(id) {
   document.getElementById('landing-page').style.display = 'none';
   document.getElementById('toolbar').style.display = 'flex';
   document.getElementById('edit-mode').style.display = 'flex';
-  document.getElementById('preview-mode').style.display = 'none';
-  document.getElementById('btn-preview').style.display = '';
-  document.getElementById('btn-edit').style.display = 'none';
   document.getElementById('story-title').value = storyTitle;
-  document.getElementById('custom-map-toggle').checked = useCustomMap;
-  document.querySelector('.map-mode-toggle').classList.toggle('active', useCustomMap);
+  document.getElementById('hero-text-color').value = heroTextColor || '#ffffff';
   updateCustomMapUpload();
-  initEditMap();
   renderPaletteBar();
   renderLayoutBar();
   renderCoverBar();
   applyPaletteToPreview();
   if (sections.length === 0) {
-    sections.push({ title: 'Welcome', body: 'Click the map to set this section\'s location, then add more sections to build your story.', image: '', lat: null, lng: null, zoom: 10 });
+    sections.push({ title: 'Welcome', body: 'Click "Set location" on this section to place its pin, then add more sections to build your story.', image: '', lat: null, lng: null, zoom: 10 });
     await save();
   }
+  renderHero();
   renderSections();
-  renderEditMarkers();
+  updateLivePreview();
+  setActiveTab('cover');
 }
 
-function initEditMap() {
-  if (editMap) editMap.remove();
-  editMap = null;
+// initEditMap removed: the right pane now shows the live preview, not a map.
+// Map placement happens in #map-modal via openMapModal() instead.
 
-  const hint = document.getElementById('map-hint');
-  if (hint) hint.textContent = useCustomMap
-    ? 'Select a section, then click the image to set its location'
-    : 'Select a section, then click the map to set its location';
+// ── Custom map upload (Image stories only) ──
+// The map type is locked at creation (Map vs. Image story), so there's no
+// toggle. For Image stories with an image already uploaded, show Replace/
+// Remove controls in the Sections-tab map-mode-bar. For Image stories
+// without an image yet, the upload is handled by #image-upload-prompt in
+// the map pane, so the bar stays hidden.
+function updateCustomMapUpload() {
+  const bar = document.getElementById('map-mode-bar');
+  const area = document.getElementById('custom-map-upload');
+  if (!bar || !area) return;
 
   if (useCustomMap && customMapImage) {
-    const img = new Image();
-    img.onload = () => {
-      const bounds = [[0, 0], [img.height, img.width]];
-      editMap = L.map('map-edit', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 5, zoomSnap: 0.25, attributionControl: false });
-      L.imageOverlay(customMapImage, bounds).addTo(editMap);
-      editMap.fitBounds(bounds, { padding: [0, 0] });
-      editMap.setMaxBounds(bounds);
-      editMap.on('click', function(e) {
-        if (sections.length === 0 || activeIdx < 0) return;
-        const s = sections[activeIdx];
-        s.lat = e.latlng.lat;
-        s.lng = e.latlng.lng;
-        save();
-        renderSections();
-        renderEditMarkers();
-      });
-      editMap.on('zoomend', () => {
-        customMapZoom = editMap.getZoom();
-        save();
-      });
-      renderEditMarkers();
-    };
-    img.src = customMapImage;
-  } else if (useCustomMap && !customMapImage) {
-    editMap = L.map('map-edit', { crs: L.CRS.Simple, minZoom: -1, maxZoom: 1, attributionControl: false });
-    editMap.setView([0, 0], 0);
-  } else {
-    editMap = L.map('map-edit').setView([20, 0], 2);
-    L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(editMap);
-    editMap.on('click', function(e) {
-      if (sections.length === 0 || activeIdx < 0) return;
-      const s = sections[activeIdx];
-      s.lat = e.latlng.lat;
-      s.lng = e.latlng.lng;
-      save();
-      renderSections();
-      renderEditMarkers();
-    });
-    editMap.on('zoomend', () => {
-      mapZoom = editMap.getZoom();
-      save();
-    });
-  }
-}
-
-// ── Custom map toggle & upload ──
-document.getElementById('custom-map-toggle').addEventListener('change', (e) => {
-  const wasCustom = useCustomMap;
-  useCustomMap = e.target.checked;
-  const hasCoords = sections.some(s => s.lat != null);
-  if (hasCoords && wasCustom !== useCustomMap) {
-    if (!confirm('Switching map mode will clear all section locations (coordinates are not compatible between modes). Continue?')) {
-      useCustomMap = wasCustom;
-      e.target.checked = wasCustom;
-      return;
-    }
-    sections.forEach(s => { s.lat = null; s.lng = null; });
-  }
-  save();
-  e.target.closest('.map-mode-toggle').classList.toggle('active', useCustomMap);
-  updateCustomMapUpload();
-  initEditMap();
-  renderSections();
-  renderEditMarkers();
-});
-
-function updateCustomMapUpload() {
-  const area = document.getElementById('custom-map-upload');
-  if (useCustomMap && !customMapImage) {
-    area.style.display = 'block';
-    area.innerHTML = `
-      <div class="img-drop" id="custom-map-drop">
-        Drop your map image here or click to upload
-        <input type="file" accept="image/*" id="custom-map-file">
-      </div>`;
-    const drop = document.getElementById('custom-map-drop');
-    drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
-    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
-    drop.addEventListener('drop', (e) => {
-      e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover');
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('image/')) handleCustomMapFile(file);
-    });
-    document.getElementById('custom-map-file').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) handleCustomMapFile(file);
-    });
-  } else if (useCustomMap && customMapImage) {
-    area.style.display = 'block';
+    bar.style.display = '';
     area.innerHTML = `
       <div class="custom-map-actions">
         <button class="btn btn-ghost" id="replace-custom-map">Replace image</button>
@@ -796,16 +983,17 @@ function updateCustomMapUpload() {
       if (file) handleCustomMapFile(file);
     });
     document.getElementById('remove-custom-map').addEventListener('click', () => {
+      const hasCoords = sections.some(s => s.lat != null);
+      if (hasCoords && !confirm('Removing the image will clear all section locations. Continue?')) return;
       customMapImage = '';
       sections.forEach(s => { s.lat = null; s.lng = null; });
       save();
       updateCustomMapUpload();
-      initEditMap();
       renderSections();
-      renderEditMarkers();
+      scheduleLivePreview();
     });
   } else {
-    area.style.display = 'none';
+    bar.style.display = 'none';
     area.innerHTML = '';
   }
 }
@@ -817,17 +1005,25 @@ function handleCustomMapFile(file) {
       customMapImage = compressed;
       save();
       updateCustomMapUpload();
-      initEditMap();
-      renderEditMarkers();
+      scheduleLivePreview();
     });
   };
   reader.readAsDataURL(file);
 }
 
-async function createNewStorymap() {
+function openNewStoryModal() {
+  document.getElementById('new-story-modal').style.display = 'flex';
+}
+function closeNewStoryModal() {
+  document.getElementById('new-story-modal').style.display = 'none';
+}
+
+async function createNewStorymap(type) {
+  closeNewStoryModal();
+  const useCustom = type === 'image';
   const id = generateId();
   const index = await loadIndex();
-  index.push({ id, title: 'Untitled Story', heroImageThumb: '', lastEdited: Date.now(), createdAt: Date.now() });
+  index.push({ id, title: 'Untitled Story', heroImageThumb: '', type: useCustom ? 'image' : 'map', lastEdited: Date.now(), createdAt: Date.now(), _thumbFixed: true });
   await saveIndex(index);
   await dbPut('storymaps', {
     id,
@@ -839,7 +1035,7 @@ async function createNewStorymap() {
     zoom: 8,
     customZoom: 2,
     palette: 'cabin',
-    useCustomMap: false,
+    useCustomMap: useCustom,
     customMapImage: ''
   });
   await openStorymap(id);
@@ -883,6 +1079,10 @@ function renderCoverBar() {
       coverId = btn.dataset.cover;
       save();
       renderCoverBar();
+      // Scroll preview to the top so the user sees the hero change.
+      const pv = document.getElementById('preview-mode');
+      if (pv) pv.scrollTop = 0;
+      scheduleLivePreview();
     });
   });
 }
@@ -924,6 +1124,12 @@ function renderLayoutBar() {
       layoutId = btn.dataset.layout;
       save();
       renderLayoutBar();
+      scheduleLivePreview();
+      // Scroll preview past the hero so the layout change is immediately visible.
+      requestAnimationFrame(() => {
+        const firstSection = document.querySelector('#narrative .story-section');
+        if (firstSection) firstSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
   });
 }
@@ -932,8 +1138,9 @@ function renderLayoutBar() {
 function renderPaletteBar() {
   const container = document.getElementById('palette-buttons');
   container.innerHTML = Object.entries(PALETTES).map(([id, p]) =>
-    `<button class="palette-btn ${id === paletteId ? 'active' : ''}" data-palette="${id}" title="${p.name}" style="background:${p.bg};color:${p.text};border-color:${id === paletteId ? p.accent : p.border}">
-      ${p.name}
+    `<button class="palette-btn ${id === paletteId ? 'active' : ''}" data-palette="${id}" title="${p.name}">
+      <span class="palette-swatch">${p.swatch.map(c => `<span class="dot" style="background:${c}"></span>`).join('')}</span>
+      <span>${p.name}</span>
     </button>`
   ).join('');
   container.querySelectorAll('.palette-btn').forEach(btn => {
@@ -942,11 +1149,13 @@ function renderPaletteBar() {
       save();
       renderPaletteBar();
       applyPaletteToPreview();
+      scheduleLivePreview();
     });
   });
 }
 
 function applyPaletteToPreview() {
+  // Palette only themes the story preview/export — editor chrome stays neutral.
   const p = PALETTES[paletteId] || PALETTES.cabin;
   const el = document.getElementById('preview-mode');
   if (el) {
@@ -960,17 +1169,6 @@ function applyPaletteToPreview() {
     el.style.setProperty('--palette-text-muted', p.textMuted);
     el.style.setProperty('--palette-control-text', p.controlText);
   }
-  // Also apply editor palette
-  const ed = p.ed;
-  const r = document.documentElement.style;
-  r.setProperty('--ed-bg', ed.bg); r.setProperty('--ed-panel', ed.panel);
-  r.setProperty('--ed-card', ed.card); r.setProperty('--ed-border', ed.border);
-  r.setProperty('--ed-accent', ed.accent); r.setProperty('--ed-accent-hover', ed.accentHover);
-  r.setProperty('--ed-secondary', ed.secondary); r.setProperty('--ed-secondary-hover', ed.secondaryHover);
-  r.setProperty('--ed-text', ed.text); r.setProperty('--ed-muted', ed.muted);
-  r.setProperty('--ed-placeholder', ed.placeholder);
-  r.setProperty('--ed-danger', ed.danger); r.setProperty('--ed-danger-hover', ed.dangerHover);
-  r.setProperty('--ed-success', ed.success); r.setProperty('--ed-hint-bg', ed.hintBg);
 }
 
 // Resize image to fit within max dimensions and return compressed data URL
@@ -991,71 +1189,108 @@ function resizeImage(dataUrl, maxSize, callback) {
   img.src = dataUrl;
 }
 
-// ── Render section cards ──
-function renderSections() {
-  const list = document.getElementById('section-list');
-  list.innerHTML = '';
+// ── Tab navigation ──
+function setActiveTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(el => {
+    el.classList.toggle('active', el.id === 'tab-' + tab);
+  });
+  if (tab === 'sections' && activeIdx === -1 && sections.length > 0) {
+    activeIdx = 0;
+    renderSections();
+    scheduleLivePreview();
+  }
+  if (previewMap) setTimeout(() => previewMap.invalidateSize(), 50);
+}
 
-  // Hero card
+// ── Render hero card (Cover tab) ──
+function renderHero() {
+  const target = document.getElementById('cover-content');
+  if (!target) return;
+  target.innerHTML = '';
+
   const hero = document.createElement('div');
-  hero.className = 'hero-card' + (activeIdx === -1 ? ' active' : '');
-  const heroActive = activeIdx === -1;
+  hero.className = 'hero-card active';
   hero.innerHTML = `
     <div class="hero-label"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM5 15l3.5-4.5 2.5 3 3.5-4.5L19 15H5z"/></svg>Cover</div>
-    <input type="text" id="hero-title-input" placeholder="Title" value="${esc(storyTitle)}" ${!heroActive ? 'readonly' : ''}>
-    <textarea id="hero-subtitle-input" placeholder="Subheading" ${!heroActive ? 'readonly' : ''}>${esc(heroSubtitle)}</textarea>
-    <div class="hero-color-row">
-      <label for="hero-text-color">Text color:</label>
-      <input type="color" id="hero-text-color" value="${heroTextColor || '#ffffff'}" title="Hero text color" ${!heroActive ? 'disabled' : ''}>
-      <span class="hero-color-reset" id="hero-color-reset">Use palette default</span>
-    </div>
+    <input type="text" id="hero-title-input" placeholder="Title" value="${esc(storyTitle)}">
+    <textarea id="hero-subtitle-input" placeholder="Subheading">${esc(heroSubtitle)}</textarea>
     <div class="img-drop${heroImage ? ' has-image' : ''}" id="hero-img-drop">
       ${heroImage ? `<img class="thumb" src="${heroImage}"><button class="remove-img" id="hero-img-remove" title="Remove image"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>` : 'Drop hero background image or click to upload'}
       <input type="file" accept="image/*" id="hero-img-file">
     </div>
   `;
-  hero.addEventListener('click', (e) => {
-    if (e.target.closest('button') || e.target.closest('.img-drop')) return;
-    if (heroActive && (e.target.closest('.hero-color-row') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-    activeIdx = -1;
-    renderSections();
-  });
-  list.appendChild(hero);
+  target.appendChild(hero);
+
   document.getElementById('hero-title-input').addEventListener('input', (e) => {
     storyTitle = e.target.value;
     document.getElementById('story-title').value = storyTitle;
-    save();
+    save(); scheduleLivePreview();
   });
   document.getElementById('hero-subtitle-input').addEventListener('input', (e) => {
     heroSubtitle = e.target.value;
-    save();
-  });
-  const heroColorInput = document.getElementById('hero-text-color');
-  heroColorInput.value = heroTextColor || '#ffffff';
-  heroColorInput.addEventListener('input', (e) => {
-    heroTextColor = e.target.value;
-    save();
-  });
-  document.getElementById('hero-color-reset').addEventListener('click', (e) => {
-    e.stopPropagation();
-    heroTextColor = '';
-    heroColorInput.value = '#ffffff';
-    save();
+    save(); scheduleLivePreview();
   });
   const heroDrop = document.getElementById('hero-img-drop');
   heroDrop.addEventListener('dragover', (e) => { e.preventDefault(); heroDrop.classList.add('dragover'); });
   heroDrop.addEventListener('dragleave', () => heroDrop.classList.remove('dragover'));
+  async function setHeroImage(c) {
+    heroImage = c;
+    await save();
+    if (currentStorymapId) {
+      const t = await new Promise(res => generateThumbnail(c, res));
+      await updateIndexEntry(currentStorymapId, { heroImageThumb: t });
+    }
+    renderHero();
+    scheduleLivePreview();
+  }
   heroDrop.addEventListener('drop', (e) => {
     e.preventDefault(); e.stopPropagation(); heroDrop.classList.remove('dragover');
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) { const r = new FileReader(); r.onload = (ev) => { resizeImage(ev.target.result, 1200, (c) => { heroImage = c; save(); if (currentStorymapId) generateThumbnail(c, (t) => updateIndexEntry(currentStorymapId, { heroImageThumb: t })); renderSections(); }); }; r.readAsDataURL(file); }
+    if (file && file.type.startsWith('image/')) {
+      const r = new FileReader();
+      r.onload = (ev) => resizeImage(ev.target.result, 1200, setHeroImage);
+      r.readAsDataURL(file);
+    }
   });
   document.getElementById('hero-img-file').addEventListener('change', (e) => {
     const file = e.target.files[0];
-    if (file) { const r = new FileReader(); r.onload = (ev) => { resizeImage(ev.target.result, 1200, (c) => { heroImage = c; save(); if (currentStorymapId) generateThumbnail(c, (t) => updateIndexEntry(currentStorymapId, { heroImageThumb: t })); renderSections(); }); }; r.readAsDataURL(file); }
+    if (file) {
+      const r = new FileReader();
+      r.onload = (ev) => resizeImage(ev.target.result, 1200, setHeroImage);
+      r.readAsDataURL(file);
+    }
   });
   const heroRemoveBtn = document.getElementById('hero-img-remove');
-  if (heroRemoveBtn) heroRemoveBtn.addEventListener('click', (e) => { e.stopPropagation(); heroImage = ''; save(); if (currentStorymapId) updateIndexEntry(currentStorymapId, { heroImageThumb: '' }); renderSections(); });
+  if (heroRemoveBtn) heroRemoveBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    heroImage = '';
+    // Sequence the index updates: save() also touches the index entry
+    // (lastEdited / title), so we'd race with the thumb clear if both ran in
+    // parallel. Clear the thumb first, then save.
+    if (currentStorymapId) await updateIndexEntry(currentStorymapId, { heroImageThumb: '' });
+    await save();
+    renderHero();
+    scheduleLivePreview();
+  });
+}
+
+// ── Render section cards (Sections tab) ──
+function renderSections() {
+  const list = document.getElementById('section-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  if (sections.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'padding:40px 16px;text-align:center;color:var(--muted);font-size:13px;';
+    empty.textContent = 'No sections yet. Click "+ Add Section" below to create one.';
+    list.appendChild(empty);
+    return;
+  }
 
   sections.forEach((s, i) => {
     const card = document.createElement('div');
@@ -1078,19 +1313,24 @@ function renderSections() {
         ${s.image ? `<img class="thumb" src="${s.image}"><button class="remove-img" data-i="${i}" title="Remove image"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>` : 'Drop image here or click to upload'}
         <input type="file" accept="image/*" data-i="${i}">
       </div>
-      <div class="section-loc ${hasLoc ? 'set' : ''}">
+      <div class="section-loc-row">
         ${hasLoc
-          ? (useCustomMap ? `📍 Position set (${Math.round(s.lng)}, ${Math.round(s.lat)})` : `📍 ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}`)
-          : (useCustomMap ? 'Click image to set location →' : 'Click map to set location →')}
+          ? `<span class="section-loc set">📍 ${useCustomMap ? `(${Math.round(s.lng)}, ${Math.round(s.lat)})` : `${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}`}</span>`
+          : ''}
+        <button class="btn btn-ghost set-loc-btn" data-i="${i}" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${hasLoc ? 'Move pin' : 'Set location'}
+        </button>
       </div>
     `;
-    // Select on click (allow selecting when clicking inactive section's inputs)
     card.addEventListener('click', (e) => {
       if (e.target.closest('button') || e.target.closest('.img-drop')) return;
       if (i === activeIdx && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
       activeIdx = i;
       renderSections();
-      if (hasLoc && editMap) editMap.flyTo([s.lat, s.lng], useCustomMap ? customMapZoom : mapZoom);
+      // Scroll the live preview to this section
+      const previewSection = document.querySelector(`#narrative .story-section[data-idx="${i}"]`);
+      if (previewSection) previewSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
     list.appendChild(card);
   });
@@ -1100,7 +1340,7 @@ function renderSections() {
     el.addEventListener('input', (e) => {
       const idx = parseInt(e.target.dataset.i);
       sections[idx][e.target.dataset.field] = e.target.value;
-      save();
+      save(); scheduleLivePreview();
     });
   });
   list.querySelectorAll('.del-btn').forEach(el => {
@@ -1109,7 +1349,7 @@ function renderSections() {
       const idx = parseInt(el.dataset.i);
       sections.splice(idx, 1);
       if (activeIdx >= sections.length) activeIdx = Math.max(0, sections.length - 1);
-      save(); renderSections(); renderEditMarkers();
+      save(); renderSections(); scheduleLivePreview();
     });
   });
   list.querySelectorAll('.move-up').forEach(el => {
@@ -1117,7 +1357,7 @@ function renderSections() {
       const idx = parseInt(el.dataset.i);
       [sections[idx - 1], sections[idx]] = [sections[idx], sections[idx - 1]];
       activeIdx = idx - 1;
-      save(); renderSections(); renderEditMarkers();
+      save(); renderSections(); scheduleLivePreview();
     });
   });
   list.querySelectorAll('.move-down').forEach(el => {
@@ -1125,7 +1365,7 @@ function renderSections() {
       const idx = parseInt(el.dataset.i);
       [sections[idx], sections[idx + 1]] = [sections[idx + 1], sections[idx]];
       activeIdx = idx + 1;
-      save(); renderSections(); renderEditMarkers();
+      save(); renderSections(); scheduleLivePreview();
     });
   });
   // Image drop zones (section cards only; hero has its own handlers)
@@ -1149,7 +1389,13 @@ function renderSections() {
       e.stopPropagation();
       const idx = parseInt(el.dataset.i);
       sections[idx].image = '';
-      save(); renderSections();
+      save(); renderSections(); scheduleLivePreview();
+    });
+  });
+  list.querySelectorAll('.set-loc-btn').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openMapModal(parseInt(el.dataset.i));
     });
   });
 }
@@ -1160,85 +1406,84 @@ function handleImageFile(file, idx) {
     resizeImage(e.target.result, 1200, (compressed) => {
       sections[idx].image = compressed;
       activeIdx = idx;
-      save(); renderSections();
+      save(); renderSections(); scheduleLivePreview();
     });
   };
   reader.readAsDataURL(file);
 }
 
-function renderEditMarkers() {
-  if (!editMap) return;
-  editMarkers.forEach(m => editMap.removeLayer(m));
-  editMarkers = [];
-  sections.forEach((s, i) => {
-    if (s.lat == null) return;
-    const icon = L.divIcon({ className: '', html: `<div class="numbered-marker ${i === activeIdx ? 'active-marker' : ''}">${i + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
-    const m = L.marker([s.lat, s.lng], { icon }).addTo(editMap);
-    m.on('click', () => { activeIdx = i; renderSections(); renderEditMarkers(); if (editMap) editMap.flyTo([s.lat, s.lng], useCustomMap ? customMapZoom : mapZoom); });
-    editMarkers.push(m);
-  });
-}
+// renderEditMarkers removed: marker rendering happens in the live preview
+// (read-only, via refreshPreviewMarkers) and the placement modal (drawModalMarkers).
 
-function esc(str) { return (str || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function esc(str) { return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
 // ── Add section ──
 document.getElementById('btn-add').addEventListener('click', () => {
   sections.push({ title: '', body: '', image: '', lat: null, lng: null, zoom: 10 });
   activeIdx = sections.length - 1;
-  save(); renderSections(); renderEditMarkers();
+  save(); renderSections(); scheduleLivePreview();
   // Scroll to new card
   const list = document.getElementById('section-list');
   list.scrollTop = list.scrollHeight;
 });
 
 // ── Title ──
-document.getElementById('story-title').addEventListener('input', (e) => { storyTitle = e.target.value; save(); renderSections(); });
+document.getElementById('story-title').addEventListener('input', (e) => {
+  storyTitle = e.target.value;
+  const heroInput = document.getElementById('hero-title-input');
+  if (heroInput) heroInput.value = storyTitle;
+  save(); scheduleLivePreview();
+});
 
-// ── Mode switching ──
-document.getElementById('btn-preview').addEventListener('click', () => enterPreview());
-document.getElementById('btn-edit').addEventListener('click', () => enterEdit());
+// ── Live preview ──
+// Rebuilds the embedded preview from current state. Called whenever state
+// that's visible in the preview changes (text edits, palette/layout/cover,
+// section add/remove/reorder, image swaps, marker positions).
+// The Leaflet map is only recreated when the map source changes
+// (useCustomMap / customMapImage); otherwise we just refresh markers.
+let livePreviewPending = false;
+function scheduleLivePreview() {
+  if (livePreviewPending) return;
+  livePreviewPending = true;
+  requestAnimationFrame(() => {
+    livePreviewPending = false;
+    updateLivePreview();
+  });
+}
 
-function enterPreview() {
-  mode = 'preview';
-  document.getElementById('edit-mode').style.display = 'none';
+function updateLivePreview() {
   const previewEl = document.getElementById('preview-mode');
-  previewEl.style.display = 'block';
-  // Apply layout class
-  previewEl.className = 'layout-' + layoutId;
-  applyPaletteToPreview();
-  document.getElementById('btn-preview').style.display = 'none';
-  document.getElementById('btn-edit').style.display = '';
-  document.getElementById('btn-design').style.display = 'none';
-  document.getElementById('design-drawer').classList.remove('open');
+  if (!previewEl || previewEl.offsetParent === null && previewEl.style.display === 'none') {
+    // edit-mode hidden; skip
+  }
+  if (!previewEl) return;
 
-  // Build hero fullpage
+  const scrollPos = previewEl.scrollTop;
+  const newClassName = 'layout-' + layoutId;
+  const layoutChanged = previewEl.className !== newClassName;
+  previewEl.className = newClassName;
+  applyPaletteToPreview();
+
+  // Hero
   const heroEl = document.getElementById('hero-fullpage');
   heroEl.className = '';
   heroEl.style.backgroundImage = '';
   const heroTitleStyle = heroTextColor ? ` style="color:${esc(heroTextColor)}"` : '';
-  const heroSubtitleStyle = heroTextColor ? ` style="color:${esc(heroTextColor)}"` : '';
-
-  heroEl.innerHTML = `<h1${heroTitleStyle}>${esc(storyTitle)}</h1><p${heroSubtitleStyle}>${esc(heroSubtitle)}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div>`;
+  heroEl.innerHTML = `<h1${heroTitleStyle}>${esc(storyTitle)}</h1><p${heroTitleStyle}>${esc(heroSubtitle).replace(/\n/g, '<br>')}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div>`;
   if (heroImage) {
     heroEl.classList.add('has-bg');
     heroEl.style.backgroundImage = `url(${heroImage})`;
   }
-  // Apply cover style class
   const coverClassMap = { center: '', side: 'hero-side', bold: 'hero-bold' };
   if (coverClassMap[coverId]) heroEl.classList.add(coverClassMap[coverId]);
 
-  // Build narrative
+  // Narrative + image stack
   const narrative = document.getElementById('narrative');
   narrative.innerHTML = '';
-
-  // Build image stack (right side)
   const imgPanel = document.getElementById('preview-right');
   imgPanel.innerHTML = '';
-
   const useInlineImages = (layoutId === 'immersive');
-
   sections.forEach((s, i) => {
-    // Narrative text
     const div = document.createElement('div');
     div.className = 'story-section';
     div.dataset.idx = i;
@@ -1248,12 +1493,10 @@ function enterPreview() {
     }
     div.innerHTML = `
       <h2>${i + 1}. ${esc(s.title) || 'Untitled'}</h2>
-      <p>${(s.body || '').replace(/\n/g, '<br>')}</p>
+      <p>${esc(s.body).replace(/\n/g, '<br>')}</p>
       ${imgHtml}
     `;
     narrative.appendChild(div);
-
-    // Image in right panel (only for classic/reverse layouts)
     if (!useInlineImages && s.image) {
       const img = document.createElement('img');
       img.src = s.image;
@@ -1263,95 +1506,206 @@ function enterPreview() {
     }
   });
 
-  // Init preview map
-  setTimeout(() => {
-    if (previewMap) previewMap.remove();
+  // Upload prompt (shown only when Image story has no image yet)
+  const uploadPrompt = document.getElementById('image-upload-prompt');
+  if (uploadPrompt) uploadPrompt.style.display = (useCustomMap && !customMapImage) ? '' : 'none';
 
-    function addPreviewMarkers() {
-      sections.forEach((s, i) => {
-        if (s.lat == null) return;
-        const icon = L.divIcon({ className: '', html: `<div class="numbered-marker" id="pm-${i}">${i + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
-        L.marker([s.lat, s.lng], { icon }).addTo(previewMap);
-      });
-    }
-
-    function setupScrollSync() {
-      const scrollRoot = document.getElementById('preview-mode');
-      let lastActiveIdx2 = -1;
-      const updateActiveSection = () => {
-        const sectionEls = narrative.querySelectorAll('.story-section[data-idx]');
-        const rootRect = scrollRoot.getBoundingClientRect();
-        const viewportCenterY = rootRect.top + rootRect.height / 2;
-        let best = null, bestDist = Infinity;
-        sectionEls.forEach(el => {
-          const rect = el.getBoundingClientRect();
-          const centerY = rect.top + rect.height / 2;
-          const dist = Math.abs(centerY - viewportCenterY);
-          if (dist < bestDist) { bestDist = dist; best = el; }
-        });
-        if (!best) return;
-        const idx = parseInt(best.dataset.idx);
-        if (isNaN(idx)) return;
-        if (idx === lastActiveIdx2) return;
-        lastActiveIdx2 = idx;
-        const s = sections[idx];
-        narrative.querySelectorAll('.story-section').forEach(el => el.classList.add('dim'));
-        best.classList.remove('dim');
-        if (s.lat != null) previewMap.flyTo([s.lat, s.lng], useCustomMap ? customMapZoom : mapZoom, { duration: 0.7, easeLinearity: 0.5 });
-        document.querySelectorAll('.numbered-marker').forEach(el => el.classList.remove('active-marker'));
-        const pm = document.getElementById('pm-' + idx);
-        if (pm) pm.classList.add('active-marker');
-        if (imgPanel.children.length) {
-          imgPanel.querySelectorAll('img').forEach(img => img.classList.remove('active-img'));
-          const activeImg = imgPanel.querySelector(`img[data-idx="${idx}"]`);
-          if (activeImg) activeImg.classList.add('active-img');
-        }
-      };
-      scrollRoot.addEventListener('scroll', updateActiveSection, { passive: true });
-      updateActiveSection();
-    }
-
+  // Map: (re)create only when source changes; otherwise refresh markers
+  const needsMap = !(useCustomMap && !customMapImage);
+  const sourceKey = useCustomMap ? ('img:' + customMapImage.length) : 'world';
+  if (!needsMap) {
+    if (previewMap) { previewMap.remove(); previewMap = null; }
+  } else if (!previewMap || previewMap._sourceKey !== sourceKey) {
+    if (previewMap) { previewMap.remove(); previewMap = null; }
     if (useCustomMap && customMapImage) {
       const img = new Image();
       img.onload = () => {
         const bounds = [[0, 0], [img.height, img.width]];
         previewMap = L.map('map-preview', { crs: L.CRS.Simple, zoomControl: true, scrollWheelZoom: false, minZoom: -3, maxZoom: 5, zoomSnap: 0.25, attributionControl: false });
+        previewMap._sourceKey = sourceKey;
         L.imageOverlay(customMapImage, bounds).addTo(previewMap);
         previewMap.fitBounds(bounds, { padding: [0, 0] });
         previewMap.setMaxBounds(bounds);
-        addPreviewMarkers();
+        refreshPreviewMarkers();
         const first = sections.find(s => s.lat != null);
         if (first) previewMap.setView([first.lat, first.lng], customMapZoom);
-        setupScrollSync();
+        setupPreviewScrollSync();
       };
       img.src = customMapImage;
     } else {
       previewMap = L.map('map-preview', { zoomControl: true, scrollWheelZoom: false }).setView([20, 0], 2);
+      previewMap._sourceKey = sourceKey;
       L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
         maxZoom: 18,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(previewMap);
-      addPreviewMarkers();
       previewMap.on('zoomend', () => {
         mapZoom = previewMap.getZoom();
         if (currentStorymapId) save();
       });
+      refreshPreviewMarkers();
       const first = sections.find(s => s.lat != null);
       if (first) previewMap.setView([first.lat, first.lng], mapZoom);
-      setupScrollSync();
+      setupPreviewScrollSync();
     }
-  }, 100);
+  } else {
+    // Same source, map exists — just refresh markers and scroll sync
+    refreshPreviewMarkers();
+    setupPreviewScrollSync();
+  }
+
+  // If the layout changed, the map container's CSS size may have shifted —
+  // tell Leaflet to re-measure, otherwise the map renders at its old size.
+  if (layoutChanged && previewMap) {
+    setTimeout(() => previewMap.invalidateSize(), 60);
+  }
+
+  // Restore scroll position (best-effort)
+  previewEl.scrollTop = scrollPos;
 }
 
-function enterEdit() {
-  mode = 'edit';
-  document.getElementById('edit-mode').style.display = 'flex';
-  document.getElementById('preview-mode').style.display = 'none';
-  document.getElementById('btn-preview').style.display = '';
-  document.getElementById('btn-edit').style.display = 'none';
-  document.getElementById('btn-design').style.display = '';
-  if (previewMap) { previewMap.remove(); previewMap = null; }
-  if (editMap) setTimeout(() => editMap.invalidateSize(), 100);
+function refreshPreviewMarkers() {
+  if (!previewMap) return;
+  previewMarkers.forEach(m => previewMap.removeLayer(m));
+  previewMarkers = [];
+  sections.forEach((s, i) => {
+    if (s.lat == null) return;
+    const icon = L.divIcon({ className: '', html: `<div class="numbered-marker" id="pm-${i}">${i + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+    const m = L.marker([s.lat, s.lng], { icon }).addTo(previewMap);
+    previewMarkers.push(m);
+  });
+}
+
+function setupPreviewScrollSync() {
+  const scrollRoot = document.getElementById('preview-mode');
+  const narrative = document.getElementById('narrative');
+  const imgPanel = document.getElementById('preview-right');
+  if (!scrollRoot || !narrative) return;
+  let lastActiveIdx2 = -1;
+  const updateActiveSection = () => {
+    const sectionEls = narrative.querySelectorAll('.story-section[data-idx]');
+    const rootRect = scrollRoot.getBoundingClientRect();
+    const viewportCenterY = rootRect.top + rootRect.height / 2;
+    let best = null, bestDist = Infinity;
+    sectionEls.forEach(el => {
+      const rect = el.getBoundingClientRect();
+      const centerY = rect.top + rect.height / 2;
+      const dist = Math.abs(centerY - viewportCenterY);
+      if (dist < bestDist) { bestDist = dist; best = el; }
+    });
+    if (!best) return;
+    const idx = parseInt(best.dataset.idx);
+    if (isNaN(idx)) return;
+    if (idx === lastActiveIdx2) return;
+    lastActiveIdx2 = idx;
+    const s = sections[idx];
+    narrative.querySelectorAll('.story-section').forEach(el => el.classList.add('dim'));
+    best.classList.remove('dim');
+    if (s.lat != null && previewMap) previewMap.flyTo([s.lat, s.lng], useCustomMap ? customMapZoom : mapZoom, { duration: 0.7, easeLinearity: 0.5 });
+    document.querySelectorAll('.numbered-marker').forEach(el => el.classList.remove('active-marker'));
+    const pm = document.getElementById('pm-' + idx);
+    if (pm) pm.classList.add('active-marker');
+    if (imgPanel && imgPanel.children.length) {
+      imgPanel.querySelectorAll('img').forEach(img => img.classList.remove('active-img'));
+      const activeImg = imgPanel.querySelector(`img[data-idx="${idx}"]`);
+      if (activeImg) activeImg.classList.add('active-img');
+    }
+  };
+  if (previewScrollHandler && previewScrollRoot) {
+    previewScrollRoot.removeEventListener('scroll', previewScrollHandler);
+  }
+  previewScrollHandler = updateActiveSection;
+  previewScrollRoot = scrollRoot;
+  scrollRoot.addEventListener('scroll', updateActiveSection, { passive: true });
+  updateActiveSection();
+}
+
+// ── Map placement modal ──
+let modalMap = null;
+let modalActiveSection = -1;
+function openMapModal(sectionIdx) {
+  if (sectionIdx == null || sectionIdx < 0 || sectionIdx >= sections.length) return;
+  modalActiveSection = sectionIdx;
+  const s = sections[sectionIdx];
+  document.getElementById('map-modal-title').textContent = `Set location for "${s.title || 'Section ' + (sectionIdx + 1)}"`;
+  document.getElementById('map-modal-hint').textContent = useCustomMap
+    ? 'Click anywhere on the image to place this section’s pin.'
+    : 'Click anywhere on the map to place this section’s pin.';
+  document.getElementById('map-modal').style.display = 'flex';
+  // Init the modal map after the modal is laid out so Leaflet sizes correctly
+  setTimeout(initModalMap, 50);
+}
+
+function closeMapModal() {
+  document.getElementById('map-modal').style.display = 'none';
+  if (modalMap) { modalMap.remove(); modalMap = null; }
+  modalActiveSection = -1;
+}
+
+function initModalMap() {
+  if (modalMap) { modalMap.remove(); modalMap = null; }
+  const placeMarker = (lat, lng) => {
+    if (modalActiveSection < 0) return;
+    sections[modalActiveSection].lat = lat;
+    sections[modalActiveSection].lng = lng;
+    save();
+    drawModalMarkers();
+    scheduleLivePreview();
+    renderSections();
+  };
+  if (useCustomMap && customMapImage) {
+    const img = new Image();
+    img.onload = () => {
+      const bounds = [[0, 0], [img.height, img.width]];
+      modalMap = L.map('map-modal-map', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 5, zoomSnap: 0.25, attributionControl: false });
+      L.imageOverlay(customMapImage, bounds).addTo(modalMap);
+      modalMap.fitBounds(bounds, { padding: [0, 0] });
+      modalMap.setMaxBounds(bounds);
+      modalMap.on('click', (e) => placeMarker(e.latlng.lat, e.latlng.lng));
+      modalMap.on('zoomend', () => { customMapZoom = modalMap.getZoom(); save(); });
+      drawModalMarkers();
+      // Center on active section if pin exists, else fit bounds
+      const s = sections[modalActiveSection];
+      if (s && s.lat != null) modalMap.setView([s.lat, s.lng], customMapZoom);
+    };
+    img.src = customMapImage;
+  } else {
+    modalMap = L.map('map-modal-map').setView([20, 0], 2);
+    L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(modalMap);
+    modalMap.on('click', (e) => placeMarker(e.latlng.lat, e.latlng.lng));
+    modalMap.on('zoomend', () => { mapZoom = modalMap.getZoom(); save(); });
+    drawModalMarkers();
+    const s = sections[modalActiveSection];
+    if (s && s.lat != null) modalMap.setView([s.lat, s.lng], mapZoom);
+  }
+}
+
+let modalMarkers = [];
+function drawModalMarkers() {
+  if (!modalMap) return;
+  modalMarkers.forEach(m => modalMap.removeLayer(m));
+  modalMarkers = [];
+  sections.forEach((s, i) => {
+    if (s.lat == null) return;
+    const isActive = i === modalActiveSection;
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="numbered-marker ${isActive ? 'active-marker' : 'faded'}">${i + 1}</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+    const m = L.marker([s.lat, s.lng], { icon }).addTo(modalMap);
+    m.on('click', () => {
+      // Clicking another section's marker switches the active section to it
+      modalActiveSection = i;
+      document.getElementById('map-modal-title').textContent = `Set location for "${s.title || 'Section ' + (i + 1)}"`;
+      drawModalMarkers();
+    });
+    modalMarkers.push(m);
+  });
 }
 
 // ── Export ──
@@ -1381,10 +1735,14 @@ document.getElementById('btn-export').addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = 'Compressing…';
 
-  // Compress images for export (800px max, 0.5 quality)
+  // Compress images for export (800px max, 0.5 quality).
+  // Pre-escape title/body here so the runtime concatenation in the exported
+  // file (which builds DOM via innerHTML) cannot execute injected HTML.
   const exportSections = JSON.parse(JSON.stringify(sections));
   for (const s of exportSections) {
     if (s.image) s.image = await compressForExport(s.image, 800, 0.5);
+    s.title = esc(s.title);
+    s.body = esc(s.body);
   }
   const exportHeroImage = await compressForExport(heroImage, 800, 0.5);
   const exportCustomMapImage = await compressForExport(customMapImage, 1200, 0.6);
@@ -1443,7 +1801,7 @@ function generateExport(exportSections, exportHeroImage, exportCustomMapImage) {
   } else if (lay === 'immersive') {
     layoutCSS = `#story-body{display:block;position:relative}
 #left{width:100%;padding:0;position:relative;z-index:2}
-#map{position:fixed;top:0;left:0;width:100%;height:100vh;z-index:1;border-radius:0;margin:0;border:none}
+#map{position:sticky;top:0;left:0;width:100%;height:100vh;z-index:1;border-radius:0;margin:0;border:none}
 #narrative{position:relative;z-index:2;max-width:420px;margin-left:40px;padding-top:30vh;padding-bottom:30vh}
 .story-section{background:${pal.bg};border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.25);padding:30px;margin-bottom:50vh;min-height:auto}
 .story-section.dim{opacity:.7}
@@ -1510,7 +1868,7 @@ ${layoutCSS}
 </head>
 <body>
 <div id="scroll-container">
-<div id="hero" class="${heroClass.trim()}"><h1${heroTextColor ? ` style="color:${heroTextColor.replace(/'/g, "\\'")}"` : ''}>${esc(storyTitle).replace(/'/g, "\\'")}</h1><p${heroTextColor ? ` style="color:${heroTextColor.replace(/'/g, "\\'")}"` : ''}>${esc(heroSubtitle).replace(/'/g, "\\'")}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div></div>
+<div id="hero" class="${heroClass.trim()}"><h1${heroTextColor ? ` style="color:${esc(heroTextColor)}"` : ''}>${esc(storyTitle)}</h1><p${heroTextColor ? ` style="color:${esc(heroTextColor)}"` : ''}>${esc(heroSubtitle).replace(/\n/g, '<br>')}</p><div class="scroll-hint">Scroll to explore<span>&#x25BC;</span></div></div>
 <div id="story-body"><div id="left"><div id="map"></div><div id="narrative"></div></div><div id="right"></div></div>
 </div>
 ${useCustomMap && expCustomMap ? `<img id="custom-map-src" src="${expCustomMap.replace(/"/g, '&quot;')}" style="display:none">` : ''}
@@ -1582,12 +1940,76 @@ if(useCustomMap){
 </html>`;
 }
 
-// ── Design drawer ──
-document.getElementById('btn-design').addEventListener('click', () => {
-  document.getElementById('design-drawer').classList.toggle('open');
+// ── Tab nav wiring ──
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => setActiveTab(el.dataset.tab));
 });
-document.getElementById('drawer-close').addEventListener('click', () => {
-  document.getElementById('design-drawer').classList.remove('open');
+
+// ── Hero text color (Design tab) ──
+document.getElementById('hero-text-color').addEventListener('input', (e) => {
+  heroTextColor = e.target.value;
+  save(); scheduleLivePreview();
+});
+document.getElementById('hero-color-reset').addEventListener('click', (e) => {
+  e.stopPropagation();
+  heroTextColor = '';
+  document.getElementById('hero-text-color').value = '#ffffff';
+  save(); scheduleLivePreview();
+});
+
+// ── In-pane image upload prompt (Image stories without an image yet) ──
+(function wireImageUploadPrompt() {
+  const prompt = document.getElementById('image-upload-prompt');
+  const btn = document.getElementById('image-upload-btn');
+  const file = document.getElementById('image-upload-file');
+  if (!prompt || !btn || !file) return;
+  prompt.addEventListener('dragover', (e) => { e.preventDefault(); prompt.classList.add('dragover'); });
+  prompt.addEventListener('dragleave', () => prompt.classList.remove('dragover'));
+  prompt.addEventListener('drop', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    prompt.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) handleCustomMapFile(f);
+  });
+  btn.addEventListener('click', () => file.click());
+  file.addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f) handleCustomMapFile(f);
+  });
+})();
+
+// ── New-story modal wiring ──
+document.getElementById('new-story-close').addEventListener('click', closeNewStoryModal);
+document.querySelectorAll('.story-type-card').forEach(card => {
+  card.addEventListener('click', () => createNewStorymap(card.dataset.type));
+});
+document.getElementById('new-story-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'new-story-modal') closeNewStoryModal();
+});
+
+// ── Map placement modal wiring ──
+document.getElementById('map-modal-close').addEventListener('click', closeMapModal);
+document.getElementById('map-modal-done').addEventListener('click', closeMapModal);
+document.getElementById('map-modal-clear').addEventListener('click', () => {
+  if (modalActiveSection < 0) return;
+  sections[modalActiveSection].lat = null;
+  sections[modalActiveSection].lng = null;
+  save();
+  drawModalMarkers();
+  scheduleLivePreview();
+  renderSections();
+});
+document.getElementById('map-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'map-modal') closeMapModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const newStoryModal = document.getElementById('new-story-modal');
+    const mapModal = document.getElementById('map-modal');
+    if (newStoryModal && newStoryModal.style.display !== 'none') { closeNewStoryModal(); return; }
+    if (mapModal && mapModal.style.display !== 'none') { closeMapModal(); return; }
+  }
 });
 
 // ── Event wiring ──
@@ -1597,6 +2019,8 @@ document.getElementById('btn-back').addEventListener('click', returnToLanding);
 (async function init() {
   try {
     await migrateIfNeeded();
+    await backfillIndexTypes();
+    await backfillThumbnails();
     await showLanding();
   } catch (e) {
     console.error('StoryMap init failed:', e);
